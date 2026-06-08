@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Quiz — Quiz App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <div>
+                    <h1>Quiz App</h1>
+                    <p id="editor-subtitle">Criar novo quiz</p>
+                </div>
+                <div id="user-area" class="user-area hidden">
+                    <span id="user-name" class="user-name"></span>
+                    <button class="logout-btn" onclick="logout()">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="nav-bar">
+            <a href="/static/manage.html" class="nav-link">&larr; Meus quizzes</a>
+        </div>
+
+        <div id="editor-error" class="error hidden"></div>
+
+        <form id="editor-form" class="editor-card" onsubmit="handleSave(event)">
+            <div class="editor-field">
+                <label for="quiz-title">Título do quiz</label>
+                <input type="text" id="quiz-title" class="auth-input" placeholder="Ex: Pesquisa de Satisfação" required>
+            </div>
+
+            <div class="editor-field">
+                <label for="quiz-desc">Descrição (opcional)</label>
+                <textarea id="quiz-desc" class="text-input" style="min-height:60px" placeholder="Breve descrição do quiz"></textarea>
+            </div>
+
+            <div class="editor-section-header">
+                <h3>Perguntas</h3>
+                <button type="button" class="mc-btn mc-add" onclick="addQuestion()">+ Adicionar pergunta</button>
+            </div>
+
+            <div id="questions-container"></div>
+
+            <div style="margin-top:1.5rem">
+                <button type="submit" class="submit-btn" id="save-btn">Salvar quiz</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        let editingId = null;
+        let questionCounter = 0;
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function getQuestionTypes() {
+            return [
+                { value: 'multiple_choice', label: 'Múltipla escolha' },
+                { value: 'single_choice', label: 'Escolha única' },
+                { value: 'rating', label: 'Avaliação' },
+                { value: 'text', label: 'Texto livre' },
+            ];
+        }
+
+        function addQuestion(data) {
+            questionCounter++;
+            const id = questionCounter;
+            const container = document.getElementById('questions-container');
+            const div = document.createElement('div');
+            div.className = 'editor-question';
+            div.dataset.qid = id;
+            div.innerHTML = `
+                <div class="eq-header">
+                    <span class="eq-number">Pergunta ${id}</span>
+                    <button type="button" class="mc-btn mc-delete" onclick="removeQuestion(${id})" style="padding:0.2rem 0.6rem;font-size:0.8rem">Remover</button>
+                </div>
+                <div class="eq-body">
+                    <div class="editor-field">
+                        <label>Texto da pergunta</label>
+                        <input type="text" class="auth-input eq-text" placeholder="Digite a pergunta..." required value="${escapeHtml(data?.text || '')}">
+                    </div>
+                    <div class="editor-field">
+                        <label>Tipo</label>
+                        <select class="auth-input eq-type" onchange="toggleOptions(this, ${id})">
+                            ${getQuestionTypes().map(t =>
+                                `<option value="${t.value}" ${data?.type === t.value ? 'selected' : ''}>${t.label}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    <div class="editor-field">
+                        <label class="option-label" style="padding:0">
+                            <input type="checkbox" class="eq-required" ${data?.required !== false ? 'checked' : ''}>
+                            <span class="option-text">Obrigatória</span>
+                        </label>
+                    </div>
+                    <div class="eq-options-area" id="options-area-${id}"></div>
+                </div>
+            `;
+            container.appendChild(div);
+            toggleOptions(div.querySelector('.eq-type'), id);
+            if (data?.options) {
+                const area = document.getElementById(`options-area-${id}`);
+                area.querySelectorAll('.eq-option-row').forEach((el, i) => {
+                    if (data.options[i]) {
+                        el.querySelector('.eq-opt-text').value = data.options[i].text;
+                    }
+                });
+            }
+        }
+
+        function removeQuestion(id) {
+            const el = document.querySelector(`.editor-question[data-qid="${id}"]`);
+            if (el) el.remove();
+            renumberQuestions();
+        }
+
+        function renumberQuestions() {
+            document.querySelectorAll('.editor-question').forEach((el, i) => {
+                el.querySelector('.eq-number').textContent = `Pergunta ${i + 1}`;
+            });
+        }
+
+        function toggleOptions(select, id) {
+            const val = select.value;
+            const area = document.getElementById(`options-area-${id}`);
+            if (val === 'text') {
+                area.innerHTML = '<p class="eq-opt-hint">Pergunta de texto livre — sem opções</p>';
+                return;
+            }
+            let html = '<div class="eq-opt-list">';
+            for (let i = 1; i <= 5; i++) {
+                html += `
+                    <div class="eq-option-row">
+                        <span class="eq-opt-num">${i}</span>
+                        <input type="text" class="auth-input eq-opt-text" placeholder="Opção ${i}">
+                        ${i > 2 ? `<button type="button" class="mc-btn mc-delete" onclick="this.parentElement.remove()" style="padding:0.1rem 0.4rem;font-size:0.7rem">×</button>` : ''}
+                    </div>
+                `;
+            }
+            html += '</div>';
+            html += `<button type="button" class="mc-btn mc-add" style="font-size:0.8rem;margin-top:0.3rem" onclick="addOption(${id})">+ Opção</button>`;
+            area.innerHTML = html;
+        }
+
+        function addOption(id) {
+            const list = document.querySelector(`#options-area-${id} .eq-opt-list`);
+            const num = list.children.length + 1;
+            const row = document.createElement('div');
+            row.className = 'eq-option-row';
+            row.innerHTML = `
+                <span class="eq-opt-num">${num}</span>
+                <input type="text" class="auth-input eq-opt-text" placeholder="Opção ${num}">
+                <button type="button" class="mc-btn mc-delete" onclick="this.parentElement.remove()" style="padding:0.1rem 0.4rem;font-size:0.7rem">×</button>
+            `;
+            list.appendChild(row);
+        }
+
+        function gatherQuestions() {
+            const questions = [];
+            document.querySelectorAll('.editor-question').forEach((el, idx) => {
+                const text = el.querySelector('.eq-text').value.trim();
+                const type = el.querySelector('.eq-type').value;
+                const required = el.querySelector('.eq-required').checked;
+                if (!text) return;
+                const q = { id: idx + 1, text, type, required };
+                if (type !== 'text') {
+                    const opts = [];
+                    el.querySelectorAll('.eq-opt-text').forEach((inp) => {
+                        const t = inp.value.trim();
+                        if (t) opts.push({ id: opts.length + 1, text: t });
+                    });
+                    if (opts.length) q.options = opts;
+                }
+                questions.push(q);
+            });
+            return questions;
+        }
+
+        async function handleSave(event) {
+            event.preventDefault();
+            const title = document.getElementById('quiz-title').value.trim();
+            const description = document.getElementById('quiz-desc').value.trim();
+            const questions = gatherQuestions();
+            const errEl = document.getElementById('editor-error');
+            errEl.classList.add('hidden');
+
+            if (!title) { errEl.textContent = 'O título é obrigatório.'; errEl.classList.remove('hidden'); return; }
+            if (questions.length === 0) { errEl.textContent = 'Adicione ao menos uma pergunta.'; errEl.classList.remove('hidden'); return; }
+
+            const btn = document.getElementById('save-btn');
+            btn.disabled = true;
+            btn.textContent = 'Salvando...';
+
+            try {
+                const payload = { title, description, questions };
+                if (editingId) {
+                    await apiPut(`/quizzes/${editingId}`, payload);
+                } else {
+                    await apiPost('/quizzes', payload);
+                }
+                window.location.href = '/static/manage.html';
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = editingId ? 'Salvar alterações' : 'Salvar quiz';
+            }
+        }
+
+        async function loadQuizForEdit(id) {
+            try {
+                const quiz = await apiGet(`/quizzes/${id}`);
+                document.getElementById('editor-subtitle').textContent = 'Editar quiz';
+                document.getElementById('quiz-title').value = quiz.title;
+                document.getElementById('quiz-desc').value = quiz.description;
+                document.getElementById('save-btn').textContent = 'Salvar alterações';
+                quiz.questions.forEach(q => addQuestion(q));
+            } catch (err) {
+                document.getElementById('editor-error').textContent = 'Erro ao carregar quiz: ' + err.message;
+                document.getElementById('editor-error').classList.remove('hidden');
+            }
+        }
+
+        async function loadUser() {
+            try {
+                const user = await fetchMe();
+                document.getElementById('user-name').textContent = user.name;
+                document.getElementById('user-area').classList.remove('hidden');
+            } catch { logout(); }
+        }
+
+        redirectIfNotAuth();
+        loadUser();
+
+        const params = new URLSearchParams(window.location.search);
+        const editId = params.get('id');
+        if (editId) {
+            editingId = parseInt(editId);
+            loadQuizForEdit(editingId);
+        } else {
+            addQuestion();
+        }
+    </script>
+</body>
+</html>

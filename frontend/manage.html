@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Quizzes — Quiz App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <div>
+                    <h1>Quiz App</h1>
+                    <p>Gerencie seus quizzes</p>
+                </div>
+                <div id="user-area" class="user-area hidden">
+                    <span id="user-name" class="user-name"></span>
+                    <button class="logout-btn" onclick="logout()">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="nav-bar">
+            <a href="/static/index.html" class="nav-link">&larr; Voltar</a>
+            <a href="/static/quiz-editor.html" class="create-btn">+ Novo Quiz</a>
+        </div>
+
+        <div id="manage-loading" class="loading">Carregando...</div>
+        <div id="manage-error" class="error hidden"></div>
+        <div id="manage-empty" class="empty-state hidden">
+            <div class="empty-icon">📝</div>
+            <h3>Nenhum quiz criado</h3>
+            <p>Crie seu primeiro quiz para começar.</p>
+            <a href="/static/quiz-editor.html" class="submit-btn" style="display:inline-block;width:auto;padding:0.75rem 2rem;text-decoration:none;margin-top:1rem">Criar quiz</a>
+        </div>
+        <div id="manage-list" class="manage-list hidden"></div>
+    </div>
+
+    <div id="confirm-modal" class="modal-overlay hidden" onclick="closeConfirm(event)">
+        <div class="modal-content" style="max-width:420px">
+            <h3 style="margin-bottom:0.5rem;color:#2d3748">Excluir quiz</h3>
+            <p style="color:#718096;margin-bottom:1.2rem" id="confirm-text"></p>
+            <div style="display:flex;gap:0.8rem;justify-content:flex-end">
+                <button class="back-btn" onclick="closeConfirm()" style="font-size:1rem">Cancelar</button>
+                <button class="submit-btn" id="confirm-yes" style="width:auto;padding:0.6rem 1.5rem;background:linear-gradient(135deg,#e53e3e,#c53030)">Sim, excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        let quizzes = [];
+        let deletingId = null;
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderList(list) {
+            const container = document.getElementById('manage-list');
+            container.innerHTML = list.map(q => `
+                <div class="manage-card">
+                    <div class="mc-info">
+                        <div class="mc-title">${escapeHtml(q.title)}</div>
+                        <div class="mc-meta">${q.questions.length} ${q.questions.length === 1 ? 'pergunta' : 'perguntas'}</div>
+                    </div>
+                    <div class="mc-actions">
+                        <a href="/static/quiz-editor.html?id=${q.id}" class="mc-btn mc-edit">Editar</a>
+                        <button class="mc-btn mc-delete" onclick="confirmDelete(${q.id}, '${escapeHtml(q.title).replace(/'/g, "\\'")}')">Excluir</button>
+                    </div>
+                </div>
+            `).join('');
+            container.classList.remove('hidden');
+        }
+
+        function confirmDelete(id, title) {
+            deletingId = id;
+            document.getElementById('confirm-text').textContent = `Tem certeza que deseja excluir "${title}"? Esta ação não pode ser desfeita.`;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirm(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('confirm-modal').classList.add('hidden');
+            deletingId = null;
+        }
+
+        async function deleteQuiz() {
+            if (!deletingId) return;
+            const btn = document.getElementById('confirm-yes');
+            btn.disabled = true;
+            btn.textContent = 'Excluindo...';
+            try {
+                await apiDelete(`/quizzes/${deletingId}`);
+                closeConfirm();
+                loadQuizzes();
+            } catch (err) {
+                alert('Erro ao excluir: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Sim, excluir';
+            }
+        }
+        document.getElementById('confirm-yes').addEventListener('click', deleteQuiz);
+
+        async function loadQuizzes() {
+            try {
+                quizzes = await apiGet('/me/quizzes');
+                document.getElementById('manage-loading').classList.add('hidden');
+                if (quizzes.length === 0) {
+                    document.getElementById('manage-empty').classList.remove('hidden');
+                    return;
+                }
+                renderList(quizzes);
+            } catch (err) {
+                document.getElementById('manage-loading').classList.add('hidden');
+                const errEl = document.getElementById('manage-error');
+                errEl.textContent = 'Erro ao carregar: ' + err.message;
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        async function loadUser() {
+            try {
+                const user = await fetchMe();
+                document.getElementById('user-name').textContent = user.name;
+                document.getElementById('user-area').classList.remove('hidden');
+            } catch {
+                logout();
+            }
+        }
+
+        redirectIfNotAuth();
+        loadUser();
+        loadQuizzes();
+    </script>
+</body>
+</html>

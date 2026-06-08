@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico — Quiz App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <div>
+                    <h1>Quiz App</h1>
+                    <p>Seu histórico de formulários respondidos</p>
+                </div>
+                <div id="user-area" class="user-area hidden">
+                    <span id="user-name" class="user-name"></span>
+                    <button class="logout-btn" onclick="logout()">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <div id="nav-bar" class="nav-bar">
+            <a href="/static/index.html" class="nav-link">&larr; Voltar para quizzes</a>
+        </div>
+
+        <div id="history-loading" class="loading">Carregando histórico...</div>
+
+        <div id="history-empty" class="empty-state hidden">
+            <div class="empty-icon">📋</div>
+            <h3>Nenhum formulário respondido</h3>
+            <p>Você ainda não preencheu nenhum formulário.</p>
+            <a href="/static/index.html" class="submit-btn" style="display:inline-block;width:auto;padding:0.75rem 2rem;text-decoration:none;margin-top:1rem">Ver formulários disponíveis</a>
+        </div>
+
+        <div id="history-error" class="error hidden"></div>
+
+        <div id="history-list" class="history-list hidden"></div>
+    </div>
+
+    <div id="detail-modal" class="modal-overlay hidden" onclick="closeDetail(event)">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeDetail()">&times;</button>
+            <div id="detail-body"></div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        let submissions = [];
+
+        function formatDate(iso) {
+            const d = new Date(iso);
+            return d.toLocaleDateString('pt-BR', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        function renderHistory(list) {
+            const container = document.getElementById('history-list');
+            container.innerHTML = list.map((s, idx) => `
+                <div class="history-card" onclick="showDetail(${idx})">
+                    <div class="hc-top">
+                        <span class="hc-title">${escapeHtml(s.quiz_title)}</span>
+                        <span class="hc-id">#${s.id}</span>
+                    </div>
+                    <div class="hc-meta">
+                        <span class="hc-date">${formatDate(s.created_at)}</span>
+                        <span class="hc-sep">•</span>
+                        <span class="hc-answers">${s.answers.length} ${s.answers.length === 1 ? 'resposta' : 'respostas'}</span>
+                        <span class="hc-sep">•</span>
+                        <span class="hc-score">Pontuação: ${s.score !== undefined && s.score !== null ? s.score : '—'}</span>
+                    </div>
+                </div>
+            `).join('');
+            container.classList.remove('hidden');
+        }
+
+        function showDetail(idx) {
+            const s = submissions[idx];
+            const body = document.getElementById('detail-body');
+            body.innerHTML = `
+                <div class="detail-header">
+                    <h2>${escapeHtml(s.quiz_title)}</h2>
+                    <div class="detail-meta">
+                        Protocolo #${s.id} • ${formatDate(s.created_at)} • ${s.answers.length} ${s.answers.length === 1 ? 'resposta' : 'respostas'}
+                    </div>
+                </div>
+                <div class="detail-answers">
+                    ${s.answers.map(a => `
+                        <div class="detail-answer">
+                            <div class="da-question">${escapeHtml(a.question_text)}</div>
+                            <div class="da-answer">${formatAnswer(a.answer)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('detail-modal').classList.remove('hidden');
+        }
+
+        function closeDetail(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('detail-modal').classList.add('hidden');
+        }
+
+        function formatAnswer(answer) {
+            if (Array.isArray(answer)) return answer.join(', ');
+            return String(answer);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function loadHistory() {
+            try {
+                submissions = await apiGet('/me/submissions');
+                document.getElementById('history-loading').classList.add('hidden');
+
+                if (submissions.length === 0) {
+                    document.getElementById('history-empty').classList.remove('hidden');
+                    return;
+                }
+
+                renderHistory(submissions);
+            } catch (err) {
+                document.getElementById('history-loading').classList.add('hidden');
+                const errEl = document.getElementById('history-error');
+                errEl.textContent = 'Erro ao carregar histórico: ' + err.message;
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        async function loadUser() {
+            try {
+                const user = await fetchMe();
+                document.getElementById('user-name').textContent = user.name;
+                document.getElementById('user-area').classList.remove('hidden');
+            } catch {
+                logout();
+            }
+        }
+
+        redirectIfNotAuth();
+        loadUser();
+        loadHistory();
+    </script>
+</body>
+</html>

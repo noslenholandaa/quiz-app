@@ -54,6 +54,26 @@ async function apiGet(path) {
     return body;
 }
 
+async function apiPut(path, data) {
+    const res = await authFetch(`${AUTH_API}${path}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+        throw new Error(body.detail || 'Erro na requisição');
+    }
+    return body;
+}
+
+async function apiDelete(path) {
+    const res = await authFetch(`${AUTH_API}${path}`, { method: 'DELETE' });
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'Erro na requisição');
+    }
+}
+
 async function loginUser(email, password) {
     const data = await apiPost('/auth/login', { email, password });
     saveToken(data.access_token);

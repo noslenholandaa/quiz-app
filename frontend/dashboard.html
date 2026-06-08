@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Quiz App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <div>
+                    <h1>Quiz App</h1>
+                    <p>Dashboard e estatísticas</p>
+                </div>
+                <div id="user-area" class="user-area hidden">
+                    <span id="user-name" class="user-name"></span>
+                    <button class="logout-btn" onclick="logout()">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="nav-bar">
+            <a href="/static/index.html" class="nav-link">&larr; Voltar</a>
+        </div>
+
+        <div id="dash-loading" class="loading">Carregando dashboard...</div>
+        <div id="dash-error" class="error hidden"></div>
+
+        <div id="dash-content" class="hidden">
+            <div class="dash-grid" id="dash-cards"></div>
+
+            <div class="dash-section">
+                <h3>Atividade recente</h3>
+                <div class="dash-stats" id="dash-stats"></div>
+            </div>
+
+            <div class="dash-section">
+                <h3>Quizzes criados recentemente</h3>
+                <div id="recent-quizzes" class="dash-empty">Nenhum quiz criado ainda</div>
+            </div>
+
+            <div class="dash-section">
+                <h3>Submissões recentes</h3>
+                <div id="recent-submissions" class="dash-empty">Nenhuma submissão ainda</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        function formatDate(iso) {
+            return new Date(iso).toLocaleDateString('pt-BR', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        function renderCards(dash) {
+            const cards = [
+                { label: 'Quizzes criados', value: dash.total_quizzes_created, icon: '📝' },
+                { label: 'Quizzes respondidos', value: dash.total_quizzes_responded, icon: '✅' },
+                { label: 'Total de submissões', value: dash.total_submissions, icon: '📊' },
+                { label: 'Total de respostas', value: dash.total_answers_submitted, icon: '✏️' },
+            ];
+            document.getElementById('dash-cards').innerHTML = cards.map(c => `
+                <div class="dash-card">
+                    <div class="dash-card-icon">${c.icon}</div>
+                    <div class="dash-card-value">${c.value}</div>
+                    <div class="dash-card-label">${c.label}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderStats(stats) {
+            const container = document.getElementById('dash-stats');
+            if (!stats) {
+                container.innerHTML = '<div class="dash-empty">Nenhuma atividade nos períodos</div>';
+                return;
+            }
+            container.innerHTML = `
+                <div class="stat-period">
+                    <div class="stat-period-title">Últimos 7 dias</div>
+                    <div class="stat-row"><span>Submissões</span><strong>${stats.last_7_days.submissions}</strong></div>
+                    <div class="stat-row"><span>Quizzes criados</span><strong>${stats.last_7_days.quizzes_created}</strong></div>
+                </div>
+                <div class="stat-period">
+                    <div class="stat-period-title">Últimos 30 dias</div>
+                    <div class="stat-row"><span>Submissões</span><strong>${stats.last_30_days.submissions}</strong></div>
+                    <div class="stat-row"><span>Quizzes criados</span><strong>${stats.last_30_days.quizzes_created}</strong></div>
+                </div>
+            `;
+        }
+
+        function renderList(containerId, items, emptyText, titleField, dateField) {
+            const el = document.getElementById(containerId);
+            if (!items || items.length === 0) {
+                el.className = 'dash-empty';
+                el.textContent = emptyText;
+                return;
+            }
+            el.className = 'dash-recent-list';
+            el.innerHTML = items.map(item => `
+                <div class="dash-recent-item">
+                    <span class="dr-title">${escapeHtml(item[titleField])}</span>
+                    <span class="dr-date">${formatDate(item[dateField])}</span>
+                </div>
+            `).join('');
+        }
+
+        async function loadDashboard() {
+            try {
+                const [dash, stats] = await Promise.all([
+                    apiGet('/me/dashboard'),
+                    apiGet('/me/stats'),
+                ]);
+                document.getElementById('dash-loading').classList.add('hidden');
+                document.getElementById('dash-content').classList.remove('hidden');
+
+                renderCards(dash);
+                renderStats(stats);
+                renderList('recent-quizzes', dash.recent_quizzes, 'Nenhum quiz criado ainda', 'title', 'created_at');
+                renderList('recent-submissions', dash.recent_submissions, 'Nenhuma submissão ainda', 'quiz_title', 'created_at');
+            } catch (err) {
+                document.getElementById('dash-loading').classList.add('hidden');
+                document.getElementById('dash-error').textContent = 'Erro ao carregar dashboard: ' + err.message;
+                document.getElementById('dash-error').classList.remove('hidden');
+            }
+        }
+
+        async function loadUser() {
+            try {
+                const user = await fetchMe();
+                document.getElementById('user-name').textContent = user.name;
+                document.getElementById('user-area').classList.remove('hidden');
+            } catch { logout(); }
+        }
+
+        redirectIfNotAuth();
+        loadUser();
+        loadDashboard();
+    </script>
+</body>
+</html>
