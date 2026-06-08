@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Quiz App</h1>
+            <p>Escolha um formulário para preencher</p>
+        </header>
+
+        <div id="quiz-list-section">
+            <div id="quiz-list" class="quiz-list">
+                <div class="loading">Carregando...</div>
+            </div>
+        </div>
+
+        <div id="form-container" class="form-container">
+            <button class="back-btn" onclick="backToList()">&larr; Voltar</button>
+            <div class="form-header">
+                <h2 id="form-title"></h2>
+                <p id="form-desc"></p>
+            </div>
+            <form id="quiz-form" onsubmit="submitForm(event)">
+                <div id="quiz-questions"></div>
+                <button type="submit" class="submit-btn">Enviar respostas</button>
+            </form>
+        </div>
+
+        <div id="result-container" class="result-container">
+            <button class="back-btn" onclick="backToList()">&larr; Voltar</button>
+            <div class="result-header">
+                <h2 id="result-title"></h2>
+                <div class="submission-id" id="submission-id"></div>
+            </div>
+            <div id="result-answers"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
