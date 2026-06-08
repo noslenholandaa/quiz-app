@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,9 +8,21 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 
 from models import Quiz, SubmissionInput, SubmissionResponse, AnswerResponse
-from database import quiz_database, submissions, get_submission_counter
+from database import quiz_database, submissions, get_submission_counter, create_db
+from auth import router as auth_router
 
-app = FastAPI(title="Quiz App API", description="Backend para formulários de pesquisa e quiz")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db()
+    yield
+
+
+app = FastAPI(
+    title="Quiz App API",
+    description="Backend para formulários de pesquisa e quiz",
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,6 +35,8 @@ app.add_middleware(
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
 if frontend_dir.exists():
     app.mount("/static", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+
+app.include_router(auth_router)
 
 
 @app.get("/")

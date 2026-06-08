@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Conta — Quiz App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Quiz App</h1>
+            <p>Crie sua conta para começar</p>
+        </header>
+
+        <div class="auth-card">
+            <h2>Cadastro</h2>
+
+            <div id="register-error" class="auth-msg auth-error hidden"></div>
+            <div id="register-success" class="auth-msg auth-success hidden"></div>
+
+            <form id="register-form" onsubmit="handleRegister(event)">
+                <div class="auth-field">
+                    <label for="name">Nome</label>
+                    <input type="text" id="name" class="auth-input" placeholder="Seu nome" required autofocus>
+                </div>
+
+                <div class="auth-field">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" class="auth-input" placeholder="seu@email.com" required>
+                </div>
+
+                <div class="auth-field">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" class="auth-input" placeholder="Mínimo 6 caracteres" required minlength="6">
+                </div>
+
+                <div class="auth-field">
+                    <label for="confirm-password">Confirmar senha</label>
+                    <input type="password" id="confirm-password" class="auth-input" placeholder="Repita a senha" required minlength="6">
+                </div>
+
+                <button type="submit" class="submit-btn" id="register-btn">Criar conta</button>
+            </form>
+
+            <p class="auth-link">
+                Já tem conta? <a href="/static/login.html">Fazer login</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        redirectIfAuth();
+
+        async function handleRegister(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirm-password').value;
+            const errorEl = document.getElementById('register-error');
+            const successEl = document.getElementById('register-success');
+            const btn = document.getElementById('register-btn');
+
+            errorEl.classList.add('hidden');
+            successEl.classList.add('hidden');
+
+            if (password !== confirm) {
+                errorEl.textContent = 'As senhas não conferem.';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Criando...';
+
+            try {
+                await registerUser(name, email, password);
+                successEl.textContent = 'Conta criada! Redirecionando...';
+                successEl.classList.remove('hidden');
+                setTimeout(() => { window.location.href = '/static/index.html'; }, 1000);
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Criar conta';
+            }
+        }
+    </script>
+</body>
+</html>

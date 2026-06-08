@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar — Quiz App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Quiz App</h1>
+            <p>Faça login para acessar os formulários</p>
+        </header>
+
+        <div class="auth-card">
+            <h2>Entrar</h2>
+
+            <div id="login-error" class="auth-msg auth-error hidden"></div>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="auth-field">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" class="auth-input" placeholder="seu@email.com" required autofocus>
+                </div>
+
+                <div class="auth-field">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" class="auth-input" placeholder="Sua senha" required>
+                </div>
+
+                <button type="submit" class="submit-btn" id="login-btn">Entrar</button>
+            </form>
+
+            <p class="auth-link">
+                Não tem conta? <a href="/static/register.html">Criar conta</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        redirectIfAuth();
+
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const errorEl = document.getElementById('login-error');
+            const btn = document.getElementById('login-btn');
+
+            errorEl.classList.add('hidden');
+
+            btn.disabled = true;
+            btn.textContent = 'Entrando...';
+
+            try {
+                await loginUser(email, password);
+                window.location.href = '/static/index.html';
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Entrar';
+            }
+        }
+    </script>
+</body>
+</html>

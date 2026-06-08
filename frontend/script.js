@@ -1,15 +1,19 @@
-const API_BASE = '';
 let currentQuiz = null;
+let currentUser = null;
 
-async function fetchJSON(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Erro HTTP ${res.status}`);
-    return res.json();
+async function loadUser() {
+    try {
+        currentUser = await fetchMe();
+        document.getElementById('user-name').textContent = currentUser.name;
+        document.getElementById('user-area').classList.remove('hidden');
+    } catch {
+        logout();
+    }
 }
 
 async function loadQuizList() {
     try {
-        const quizzes = await fetchJSON(`${API_BASE}/quizzes`);
+        const quizzes = await apiGet('/quizzes');
         const container = document.getElementById('quiz-list');
         container.innerHTML = quizzes.map(q => `
             <div class="quiz-card" onclick="selectQuiz(${q.id})">
@@ -26,7 +30,7 @@ async function loadQuizList() {
 
 async function selectQuiz(quizId) {
     try {
-        currentQuiz = await fetchJSON(`${API_BASE}/quizzes/${quizId}`);
+        currentQuiz = await apiGet(`/quizzes/${quizId}`);
         renderForm(currentQuiz);
     } catch (err) {
         alert('Erro ao carregar quiz: ' + err.message);
@@ -149,18 +153,7 @@ async function submitForm(event) {
     btn.textContent = 'Enviando...';
 
     try {
-        const res = await fetch(`${API_BASE}/quizzes/${currentQuiz.id}/submit`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ answers }),
-        });
-
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.detail || 'Erro ao enviar');
-        }
-
-        const result = await res.json();
+        const result = await apiPost(`/quizzes/${currentQuiz.id}/submit`, { answers });
         showResult(result);
     } catch (err) {
         alert('Erro: ' + err.message);
@@ -199,4 +192,6 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+redirectIfNotAuth();
+loadUser();
 loadQuizList();
