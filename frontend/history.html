@@ -70,8 +70,7 @@
                         <span class="hc-date">${formatDate(s.created_at)}</span>
                         <span class="hc-sep">•</span>
                         <span class="hc-answers">${s.answers.length} ${s.answers.length === 1 ? 'resposta' : 'respostas'}</span>
-                        <span class="hc-sep">•</span>
-                        <span class="hc-score">Pontuação: ${s.score !== undefined && s.score !== null ? s.score : '—'}</span>
+
                     </div>
                 </div>
             `).join('');

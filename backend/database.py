@@ -21,6 +21,7 @@ class UserDB(Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
+    role = Column(String, default="user")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     submissions = relationship("SubmissionDB", back_populates="owner", cascade="all, delete-orphan")
@@ -126,6 +127,110 @@ SEED_QUIZZES = [
                  {"id": 5, "text": "Cobra"},
              ]},
             {"id": 3, "text": "Em que ano o homem pisou na Lua pela primeira vez?", "type": "text", "required": True},
+        ],
+    },
+    {
+        "user_id": None,
+        "title": "Feedback de Curso Online",
+        "description": "Sua opinião é essencial para melhorarmos nossos cursos. Responda com sinceridade!",
+        "questions": [
+            {"id": 1, "text": "Como você avalia o conteúdo do curso?", "type": "rating", "required": True,
+             "options": [
+                 {"id": 1, "text": "1 - Muito ruim"}, {"id": 2, "text": "2 - Ruim"},
+                 {"id": 3, "text": "3 - Regular"}, {"id": 4, "text": "4 - Bom"},
+                 {"id": 5, "text": "5 - Excelente"},
+             ]},
+            {"id": 2, "text": "Quais temas você gostaria de ver em próximos cursos? (pode escolher mais de um)", "type": "multiple_choice", "required": True,
+             "options": [
+                 {"id": 1, "text": "Inteligência Artificial"}, {"id": 2, "text": "Desenvolvimento Web"},
+                 {"id": 3, "text": "Ciência de Dados"}, {"id": 4, "text": "Segurança da Informação"},
+                 {"id": 5, "text": "Cloud Computing"}, {"id": 6, "text": "UX/UI Design"},
+             ]},
+            {"id": 3, "text": "A carga horária do curso foi adequada?", "type": "single_choice", "required": True,
+             "options": [
+                 {"id": 1, "text": "Sim, perfeita"}, {"id": 2, "text": "Poderia ser maior"},
+                 {"id": 3, "text": "Poderia ser menor"},
+             ]},
+            {"id": 4, "text": "O que você mais gostou no curso?", "type": "text", "required": False},
+            {"id": 5, "text": "O que poderia ser melhorado?", "type": "text", "required": False},
+            {"id": 6, "text": "Você recomendaria este curso para outras pessoas?", "type": "single_choice", "required": True,
+             "options": [
+                 {"id": 1, "text": "Com certeza"}, {"id": 2, "text": "Provavelmente sim"},
+                 {"id": 3, "text": "Talvez"}, {"id": 4, "text": "Não"},
+             ]},
+        ],
+    },
+    {
+        "user_id": None,
+        "title": "Pesquisa de Estilo de Vida",
+        "description": "Conte-nos sobre seus hábitos e preferências para ajudarmos a criar conteúdo relevante.",
+        "questions": [
+            {"id": 1, "text": "Quais atividades você pratica regularmente? (marque todas que se aplicam)", "type": "multiple_choice", "required": True,
+             "options": [
+                 {"id": 1, "text": "Atividades físicas"}, {"id": 2, "text": "Leitura"},
+                 {"id": 3, "text": "Jogos"}, {"id": 4, "text": "Música"},
+                 {"id": 5, "text": "Viagens"}, {"id": 6, "text": "Culinária"},
+                 {"id": 7, "text": "Voluntariado"},
+             ]},
+            {"id": 2, "text": "Quantas horas por dia você passa em frente a telas?", "type": "single_choice", "required": True,
+             "options": [
+                 {"id": 1, "text": "Menos de 2h"}, {"id": 2, "text": "2h a 4h"},
+                 {"id": 3, "text": "4h a 8h"}, {"id": 4, "text": "Mais de 8h"},
+             ]},
+            {"id": 3, "text": "Como você avalia sua qualidade de sono?", "type": "rating", "required": True,
+             "options": [
+                 {"id": 1, "text": "1 - Péssima"}, {"id": 2, "text": "2 - Ruim"},
+                 {"id": 3, "text": "3 - Regular"}, {"id": 4, "text": "4 - Boa"},
+                 {"id": 5, "text": "5 - Excelente"},
+             ]},
+            {"id": 4, "text": "Qual seu maior hobby atualmente?", "type": "text", "required": False},
+            {"id": 5, "text": "Você se considera mais produtivo pela manhã ou à noite?", "type": "single_choice", "required": True,
+             "options": [
+                 {"id": 1, "text": "Manhã"}, {"id": 2, "text": "Tarde"},
+                 {"id": 3, "text": "Noite"}, {"id": 4, "text": "Madrugada"},
+             ]},
+            {"id": 6, "text": "Quais redes sociais você mais usa? (pode escolher mais de uma)", "type": "multiple_choice", "required": True,
+             "options": [
+                 {"id": 1, "text": "Instagram"}, {"id": 2, "text": "YouTube"},
+                 {"id": 3, "text": "Twitter/X"}, {"id": 4, "text": "LinkedIn"},
+                 {"id": 5, "text": "TikTok"}, {"id": 6, "text": "WhatsApp"},
+             ]},
+            {"id": 7, "text": "Deixe uma dica de hábito saudável que funciona para você:", "type": "text", "required": False},
+        ],
+    },
+    {
+        "user_id": None,
+        "title": "Quiz de Tecnologia",
+        "description": "Descubra o quanto você sabe sobre o mundo da tecnologia!",
+        "questions": [
+            {"id": 1, "text": "Qual empresa desenvolveu o sistema operacional Android?", "type": "single_choice", "required": True,
+             "options": [
+                 {"id": 1, "text": "Apple"}, {"id": 2, "text": "Google"},
+                 {"id": 3, "text": "Microsoft"}, {"id": 4, "text": "Samsung"},
+             ]},
+            {"id": 2, "text": "Quais destas são linguagens compiladas? (marque todas)", "type": "multiple_choice", "required": True,
+             "options": [
+                 {"id": 1, "text": "C"}, {"id": 2, "text": "Rust"},
+                 {"id": 3, "text": "Python"}, {"id": 4, "text": "Java"},
+                 {"id": 5, "text": "Go"}, {"id": 6, "text": "JavaScript"},
+             ]},
+            {"id": 3, "text": "O que significa a sigla API?", "type": "single_choice", "required": True,
+             "options": [
+                 {"id": 1, "text": "Application Programming Interface"}, {"id": 2, "text": "Automated Program Integration"},
+                 {"id": 3, "text": "Advanced Platform Interface"}, {"id": 4, "text": "Application Process Integration"},
+             ]},
+            {"id": 4, "text": "Explique com suas palavras o que é computação em nuvem:", "type": "text", "required": False},
+            {"id": 5, "text": "Qual banco de dados é conhecido por ser relacional?", "type": "single_choice", "required": True,
+             "options": [
+                 {"id": 1, "text": "MongoDB"}, {"id": 2, "text": "PostgreSQL"},
+                 {"id": 3, "text": "Redis"}, {"id": 4, "text": "Firebase"},
+             ]},
+            {"id": 6, "text": "Quais destes são protocolos de comunicação web? (marque todos)", "type": "multiple_choice", "required": True,
+             "options": [
+                 {"id": 1, "text": "HTTP"}, {"id": 2, "text": "FTP"},
+                 {"id": 3, "text": "SQL"}, {"id": 4, "text": "WebSocket"},
+                 {"id": 5, "text": "SMTP"}, {"id": 6, "text": "JSON"},
+             ]},
         ],
     },
 ]

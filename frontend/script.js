@@ -6,6 +6,10 @@ async function loadUser() {
         currentUser = await fetchMe();
         document.getElementById('user-name').textContent = currentUser.name;
         document.getElementById('user-area').classList.remove('hidden');
+        if (currentUser.role !== 'admin') {
+            const manageLink = document.getElementById('manage-link');
+            if (manageLink) manageLink.style.display = 'none';
+        }
     } catch {
         logout();
     }
@@ -45,11 +49,12 @@ function renderForm(quiz) {
     document.getElementById('form-title').textContent = quiz.title;
     document.getElementById('form-desc').textContent = quiz.description;
 
-    document.getElementById('quiz-questions').innerHTML = quiz.questions.map(q => buildQuestionHtml(q)).join('');
+    document.getElementById('quiz-questions').innerHTML = quiz.questions.map((q, i) => buildQuestionHtml(q, i)).join('');
 }
 
-function buildQuestionHtml(q) {
+function buildQuestionHtml(q, idx) {
     const required = q.required ? '<span class="required-mark">*</span>' : '';
+    const header = `<div class="q-header"><span class="q-number">${idx + 1}</span><span class="question-text">${escapeHtml(q.text)}${required}</span></div>`;
     let inputHtml = '';
 
     switch (q.type) {
@@ -96,8 +101,8 @@ function buildQuestionHtml(q) {
     }
 
     return `
-        <div class="question-block">
-            <div class="question-text">${escapeHtml(q.text)}${required}</div>
+        <div class="question-block" style="animation-delay: ${idx * 0.06}s">
+            ${header}
             ${inputHtml}
         </div>`;
 }
@@ -140,9 +145,7 @@ async function submitForm(event) {
             }
             case 'multiple_choice': {
                 const vals = formData.getAll(fieldName);
-                if (vals.length > 0) {
-                    answers.push({ question_id: question.id, value: vals });
-                }
+                answers.push({ question_id: question.id, value: vals });
                 break;
             }
         }

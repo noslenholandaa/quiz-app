@@ -12,14 +12,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from config import CORS_ORIGINS, RATE_LIMIT_LOGIN_PER_MINUTE, RATE_LIMIT_REGISTER_PER_HOUR, LOG_LEVEL, LOG_FORMAT, ENVIRONMENT
+from config import CORS_ORIGINS, RATE_LIMIT_LOGIN_PER_MINUTE, RATE_LIMIT_REGISTER_PER_HOUR, LOG_LEVEL, LOG_FORMAT, ENVIRONMENT, ADMIN_EMAILS
 from models import (
     Quiz, QuizCreate, QuizUpdate, QuestionType,
     SubmissionInput, SubmissionResponse, AnswerResponse,
     DashboardResponse, RecentQuizItem, RecentSubmissionItem,
     StatsResponse, PeriodStats,
+    AdminDashboardResponse, AdminUserItem,
 )
-from database import create_db, get_db, seed_quizzes, QuizDB, SubmissionDB
+from database import create_db, get_db, seed_quizzes, QuizDB, SubmissionDB, UserDB
 from auth import router as auth_router, get_current_user
 
 class StructFormatter(logging.Formatter):
@@ -58,13 +59,51 @@ def check_rate_limit(key: str, max_requests: int, window_seconds: int) -> bool:
     return True
 
 
+def migrate_db(db):
+    from sqlalchemy import inspect, text
+    inspector = inspect(db.bind)
+    columns = [c["name"] for c in inspector.get_columns("users")]
+    if "role" not in columns:
+        dialect = db.bind.dialect.name
+        if dialect == "postgresql":
+            db.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR DEFAULT 'user'"))
+        else:
+            db.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR DEFAULT 'user'"))
+        db.commit()
+        logger.info("Coluna 'role' adicionada à tabela users")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Iniciando aplicacao (env=%s)", ENVIRONMENT)
     create_db()
     db = next(get_db())
     try:
+        migrate_db(db)
         seed_quizzes(db)
+
+        total_users = db.query(UserDB).count()
+        if total_users == 0 and ADMIN_EMAILS and not os.getenv("PYTEST_CURRENT_TEST"):
+            from auth import hash_password
+            admin_email = ADMIN_EMAILS[0].strip()
+            if admin_email:
+                admin_user = UserDB(
+                    name="Administrador",
+                    email=admin_email,
+                    password_hash=hash_password("admin123"),
+                    role="admin",
+                )
+                db.add(admin_user)
+                db.commit()
+                logger.info("Conta admin criada: email=%s senha=admin123", admin_email)
+
+        promoted = db.query(UserDB).filter(
+            UserDB.email.in_(ADMIN_EMAILS),
+            UserDB.role != "admin",
+        ).update({"role": "admin"}, synchronize_session=False)
+        if promoted:
+            db.commit()
+            logger.info("Usuarios promovidos a admin: %d", promoted)
         logger.info("Banco inicializado com dados padrao")
     finally:
         db.close()
@@ -143,6 +182,12 @@ def quiz_to_response(q: QuizDB) -> Quiz:
     return Quiz(id=q.id, title=q.title, description=q.description, questions=q.questions)
 
 
+def require_admin(user: UserDB = Depends(get_current_user)) -> UserDB:
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso restrito a administradores")
+    return user
+
+
 @app.get("/quizzes", response_model=list[Quiz])
 def list_quizzes(user=Depends(get_current_user), db: Session = Depends(get_db)):
     mine = db.query(QuizDB).filter(QuizDB.user_id == user.id).all()
@@ -167,7 +212,7 @@ def get_quiz(quiz_id: int, db: Session = Depends(get_db)):
 @app.post("/quizzes", response_model=Quiz, status_code=201)
 def create_quiz(
     data: QuizCreate,
-    user=Depends(get_current_user),
+    user=Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     if not data.title.strip():
@@ -202,7 +247,7 @@ def create_quiz(
 def update_quiz(
     quiz_id: int,
     data: QuizUpdate,
-    user=Depends(get_current_user),
+    user=Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     q = db.query(QuizDB).filter(QuizDB.id == quiz_id).first()
@@ -210,8 +255,6 @@ def update_quiz(
         raise HTTPException(status_code=404, detail="Quiz não encontrado")
     if q.user_id is None:
         raise HTTPException(status_code=403, detail="Quiz padrão não pode ser editado")
-    if q.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Você não tem permissão para editar este quiz")
 
     if data.title is not None:
         if not data.title.strip():
@@ -236,7 +279,7 @@ def update_quiz(
 @app.delete("/quizzes/{quiz_id}", status_code=204)
 def delete_quiz(
     quiz_id: int,
-    user=Depends(get_current_user),
+    user=Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     q = db.query(QuizDB).filter(QuizDB.id == quiz_id).first()
@@ -244,8 +287,6 @@ def delete_quiz(
         raise HTTPException(status_code=404, detail="Quiz não encontrado")
     if q.user_id is None:
         raise HTTPException(status_code=403, detail="Quiz padrão não pode ser removido")
-    if q.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Você não tem permissão para remover este quiz")
 
     db.delete(q)
     db.commit()
@@ -254,7 +295,7 @@ def delete_quiz(
 
 @app.get("/me/quizzes", response_model=list[Quiz])
 def list_my_quizzes(
-    user=Depends(get_current_user),
+    user=Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     quizzes = (
@@ -412,6 +453,71 @@ def stats(
 @app.get("/health")
 def health():
     return {"status": "healthy", "environment": ENVIRONMENT, "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
+@app.get("/admin/dashboard", response_model=AdminDashboardResponse)
+def admin_dashboard(
+    user: UserDB = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    total_users = db.query(UserDB).count()
+    total_quizzes = db.query(QuizDB).count()
+    total_submissions = db.query(SubmissionDB).count()
+    users_list = db.query(UserDB).order_by(UserDB.created_at.desc()).all()
+
+    users_data = []
+    for u in users_list:
+        q_count = db.query(QuizDB).filter(QuizDB.user_id == u.id).count()
+        s_count = db.query(SubmissionDB).filter(SubmissionDB.user_id == u.id).count()
+        users_data.append(AdminUserItem(
+            id=u.id, name=u.name, email=u.email, role=u.role,
+            created_at=u.created_at, quizzes_count=q_count, submissions_count=s_count,
+        ))
+
+    return AdminDashboardResponse(
+        total_users=total_users,
+        total_quizzes=total_quizzes,
+        total_submissions=total_submissions,
+        users=users_data,
+    )
+
+
+@app.get("/admin/users", response_model=list[AdminUserItem])
+def admin_list_users(
+    user: UserDB = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    users_list = db.query(UserDB).order_by(UserDB.created_at.desc()).all()
+    result = []
+    for u in users_list:
+        q_count = db.query(QuizDB).filter(QuizDB.user_id == u.id).count()
+        s_count = db.query(SubmissionDB).filter(SubmissionDB.user_id == u.id).count()
+        result.append(AdminUserItem(
+            id=u.id, name=u.name, email=u.email, role=u.role,
+            created_at=u.created_at, quizzes_count=q_count, submissions_count=s_count,
+        ))
+    return result
+
+
+@app.put("/admin/users/{user_id}/role")
+def admin_set_role(
+    user_id: int,
+    body: dict,
+    user: UserDB = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    target = db.query(UserDB).filter(UserDB.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    new_role = body.get("role")
+    if new_role not in ("admin", "user"):
+        raise HTTPException(status_code=400, detail="Role deve ser 'admin' ou 'user'")
+    if target.id == user.id:
+        raise HTTPException(status_code=400, detail="Você não pode alterar seu próprio role")
+    target.role = new_role
+    db.commit()
+    logger.info("Admin %s alterou role do usuario %s para %s", user.id, user_id, new_role)
+    return {"detail": f"Role atualizado para {new_role}"}
 
 
 @app.get("/health/database")

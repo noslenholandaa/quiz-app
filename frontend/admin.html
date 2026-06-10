@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — Quiz App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <div>
+                    <h1>Painel Admin</h1>
+                    <p>Gerenciamento do sistema</p>
+                </div>
+                <div id="user-area" class="user-area hidden">
+                    <span id="user-name" class="user-name"></span>
+                    <span class="admin-badge-static">Admin</span>
+                    <button class="logout-btn" onclick="logout()">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="nav-bar">
+            <a href="/static/dashboard.html" class="nav-link">&larr; Dashboard</a>
+        </div>
+
+        <div id="admin-loading" class="loading">Carregando painel...</div>
+        <div id="admin-error" class="error hidden"></div>
+
+        <div id="admin-content" class="hidden">
+            <div class="admin-stats-row">
+                <div class="admin-stat-card">
+                    <div class="admin-stat-value" id="stat-users">0</div>
+                    <div class="admin-stat-label">Usuários</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-value" id="stat-quizzes">0</div>
+                    <div class="admin-stat-label">Quizzes</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-value" id="stat-submissions">0</div>
+                    <div class="admin-stat-label">Submissões</div>
+                </div>
+            </div>
+
+            <div class="dash-section">
+                <div class="dash-section-header">
+                    <h3>Usuários cadastrados</h3>
+                </div>
+                <div id="admin-users-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        function renderUsers(users) {
+            const el = document.getElementById('admin-users-list');
+            if (!users || users.length === 0) {
+                el.innerHTML = '<div class="dash-empty">Nenhum usuário encontrado</div>';
+                return;
+            }
+            el.innerHTML = `
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Quizzes</th>
+                                <th>Submissões</th>
+                                <th>Criado em</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${users.map(u => {
+                                const date = new Date(u.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                const isAdmin = u.role === 'admin';
+                                return `
+                                    <tr${isAdmin ? ' class="admin-row"' : ''}>
+                                        <td>${u.id}</td>
+                                        <td><strong>${escapeHtml(u.name)}</strong></td>
+                                        <td>${escapeHtml(u.email)}</td>
+                                        <td><span class="role-badge role-${u.role}">${isAdmin ? '🛡️ Admin' : 'Usuário'}</span></td>
+                                        <td>${u.quizzes_count}</td>
+                                        <td>${u.submissions_count}</td>
+                                        <td class="admin-date">${date}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        async function loadAdmin() {
+            try {
+                const data = await apiGet('/admin/dashboard');
+                document.getElementById('admin-loading').classList.add('hidden');
+                document.getElementById('admin-content').classList.remove('hidden');
+
+                document.getElementById('stat-users').textContent = data.total_users;
+                document.getElementById('stat-quizzes').textContent = data.total_quizzes;
+                document.getElementById('stat-submissions').textContent = data.total_submissions;
+
+                renderUsers(data.users);
+            } catch (err) {
+                document.getElementById('admin-loading').classList.add('hidden');
+                if (err.message.includes('403') || err.message.includes('não autorizado')) {
+                    document.getElementById('admin-error').textContent = 'Acesso restrito. Você não é administrador.';
+                } else {
+                    document.getElementById('admin-error').textContent = 'Erro: ' + err.message;
+                }
+                document.getElementById('admin-error').classList.remove('hidden');
+            }
+        }
+
+        async function loadUser() {
+            try {
+                const user = await fetchMe();
+                document.getElementById('user-name').textContent = user.name;
+                document.getElementById('user-area').classList.remove('hidden');
+                if (user.role !== 'admin') {
+                    document.getElementById('admin-loading').classList.add('hidden');
+                    document.getElementById('admin-error').textContent = 'Acesso restrito a administradores.';
+                    document.getElementById('admin-error').classList.remove('hidden');
+                    return;
+                }
+                loadAdmin();
+            } catch { logout(); }
+        }
+
+        redirectIfNotAuth();
+        loadUser();
+    </script>
+</body>
+</html>

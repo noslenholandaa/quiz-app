@@ -1,0 +1,5 @@
+backend/*.db
+backend/__pycache__/
+*.pyc
+backend/.coverage
+.pytest_cache/

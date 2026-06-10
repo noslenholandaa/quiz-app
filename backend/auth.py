@@ -16,6 +16,7 @@ from config import (
     ALGORITHM,
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
+    ADMIN_EMAILS,
 )
 from database import get_db, UserDB, RefreshTokenDB
 from models import (
@@ -112,23 +113,33 @@ def register(data: UserCreate, db: Session = Depends(get_db), request: Request =
         logger.warning("Registro duplicado email=%s ip=%s", data.email, request.client.host if request else "?")
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email já cadastrado")
 
+    if not data.name.strip():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Nome não pode ficar vazio")
+    if not data.password.strip():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Senha não pode ficar vazia")
+    if len(data.password.strip()) < 6:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Senha deve ter no mínimo 6 caracteres")
+
+    role = "admin" if data.email.lower() in ADMIN_EMAILS else "user"
+
     user = UserDB(
-        name=data.name,
+        name=data.name.strip(),
         email=data.email,
-        password_hash=hash_password(data.password),
+        password_hash=hash_password(data.password.strip()),
+        role=role,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    logger.info("Usuario registrado id=%s email=%s name=\"%s\" ip=%s", user.id, user.email, user.name, request.client.host if request else "?")
+    logger.info("Usuario registrado id=%s email=%s name=\"%s\" role=%s ip=%s", user.id, user.email, user.name, user.role, request.client.host if request else "?")
     return build_token_response(user.id, db, request)
 
 
 @router.post("/login", response_model=Token)
 def login(data: UserLogin, db: Session = Depends(get_db), request: Request = None):
     user = db.query(UserDB).filter(UserDB.email == data.email).first()
-    if not user or not verify_password(data.password, user.password_hash):
+    if not user or not verify_password(data.password.strip(), user.password_hash):
         logger.warning("Login invalido email=%s ip=%s", data.email, request.client.host if request else "?")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email ou senha inválidos")
 
@@ -146,7 +157,7 @@ def refresh_token(data: RefreshTokenInput, db: Session = Depends(get_db), reques
 
     if not rt:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token inválido")
-    if rt.expires_at < datetime.now(timezone.utc):
+    if rt.expires_at.replace(tzinfo=None) < datetime.now(timezone.utc).replace(tzinfo=None):
         rt.revoked = True
         db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expirado")

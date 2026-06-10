@@ -87,10 +87,28 @@ class UserResponse(BaseModel):
     id: int
     name: str
     email: str
+    role: str = "user"
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class AdminUserItem(BaseModel):
+    id: int
+    name: str
+    email: str
+    role: str
+    created_at: datetime
+    quizzes_count: int = 0
+    submissions_count: int = 0
+
+
+class AdminDashboardResponse(BaseModel):
+    total_users: int
+    total_quizzes: int
+    total_submissions: int
+    users: List[AdminUserItem]
 
 
 class Token(BaseModel):

@@ -1,31 +1,66 @@
 const AUTH_API = '';
 
-function saveToken(token) {
-    localStorage.setItem('quiz_token', token);
+function saveToken(accessToken, refreshToken) {
+    localStorage.setItem('quiz_token', accessToken);
+    if (refreshToken) localStorage.setItem('quiz_refresh', refreshToken);
 }
 
 function getToken() {
     return localStorage.getItem('quiz_token');
 }
 
-function removeToken() {
+function getRefreshToken() {
+    return localStorage.getItem('quiz_refresh');
+}
+
+function removeTokens() {
     localStorage.removeItem('quiz_token');
+    localStorage.removeItem('quiz_refresh');
 }
 
 function isAuthenticated() {
     return !!getToken();
 }
 
-async function authFetch(url, options = {}) {
-    const token = getToken();
-    const headers = { ...options.headers };
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+async function tryRefreshToken() {
+    const rt = getRefreshToken();
+    if (!rt) return false;
+    try {
+        const res = await fetch(`${AUTH_API}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: rt }),
+        });
+        if (!res.ok) { removeTokens(); return false; }
+        const data = await res.json();
+        saveToken(data.access_token, data.refresh_token);
+        return true;
+    } catch {
+        removeTokens();
+        return false;
     }
+}
+
+async function authFetch(url, options = {}) {
+    let token = getToken();
+    const headers = { ...options.headers };
     if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json';
     }
-    return fetch(url, { ...options, headers });
+    const doFetch = (t) => {
+        const h = { ...headers };
+        if (t) h['Authorization'] = `Bearer ${t}`;
+        return fetch(url, { ...options, headers: h });
+    };
+    let res = await doFetch(token);
+    if (res.status === 401 && getRefreshToken()) {
+        const ok = await tryRefreshToken();
+        if (ok) {
+            token = getToken();
+            res = await doFetch(token);
+        }
+    }
+    return res;
 }
 
 function getAuthHeaders() {
@@ -38,19 +73,15 @@ async function apiPost(path, data) {
         method: 'POST',
         body: JSON.stringify(data),
     });
-    const body = await res.json();
-    if (!res.ok) {
-        throw new Error(body.detail || 'Erro na requisição');
-    }
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.detail || 'Erro na requisição');
     return body;
 }
 
 async function apiGet(path) {
     const res = await authFetch(`${AUTH_API}${path}`);
-    const body = await res.json();
-    if (!res.ok) {
-        throw new Error(body.detail || 'Erro na requisição');
-    }
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.detail || 'Erro na requisição');
     return body;
 }
 
@@ -59,10 +90,8 @@ async function apiPut(path, data) {
         method: 'PUT',
         body: JSON.stringify(data),
     });
-    const body = await res.json();
-    if (!res.ok) {
-        throw new Error(body.detail || 'Erro na requisição');
-    }
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.detail || 'Erro na requisição');
     return body;
 }
 
@@ -76,13 +105,13 @@ async function apiDelete(path) {
 
 async function loginUser(email, password) {
     const data = await apiPost('/auth/login', { email, password });
-    saveToken(data.access_token);
+    saveToken(data.access_token, data.refresh_token);
     return data;
 }
 
 async function registerUser(name, email, password) {
     const data = await apiPost('/auth/register', { name, email, password });
-    saveToken(data.access_token);
+    saveToken(data.access_token, data.refresh_token);
     return data;
 }
 
@@ -91,7 +120,7 @@ async function fetchMe() {
 }
 
 function logout() {
-    removeToken();
+    removeTokens();
     window.location.href = '/static/login.html';
 }
 

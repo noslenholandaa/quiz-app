@@ -34,6 +34,15 @@ quiz-app/
 │   │   │   └── 0d2d4063362d_initial_schema.py
 │   │   └── env.py
 │   ├── alembic.ini
+│   ├── tests/
+│   │   ├── __init__.py
+│   │   ├── conftest.py
+│   │   ├── test_auth.py
+│   │   ├── test_refresh_tokens.py
+│   │   ├── test_quizzes.py
+│   │   ├── test_submissions.py
+│   │   ├── test_dashboard.py
+│   │   └── test_health.py
 │   ├── main.py          # Rotas da API + lifespan
 │   ├── database.py      # Modelos SQLAlchemy + seed
 │   ├── models.py        # Schemas Pydantic
@@ -191,12 +200,45 @@ cd backend && alembic upgrade head
 
 ## Testes
 
-Testes de integração via PowerShell:
+### Pré-requisitos
 
-```powershell
-# Requer: servidor rodando em http://localhost:8000
-# Executar os cenários manualmente ou via script PowerShell
+```bash
+pip install -r backend/requirements.txt
 ```
+
+### Executar todos os testes
+
+```bash
+cd backend && python -m pytest tests/ -v
+```
+
+### Executar com cobertura
+
+```bash
+cd backend && python -m pytest tests/ -v --cov=. --cov-report=term-missing
+```
+
+### Meta de cobertura
+
+Mínimo de 80%. O CI falha automaticamente se a cobertura ficar abaixo deste limiar.
+
+## CI/CD
+
+### GitHub Actions
+
+O repositório possui um workflow automatizado em `.github/workflows/tests.yml`:
+
+- **Trigger:** `push` ou `pull_request` para `main`
+- **Passos:**
+  1. Checkout do código
+  2. Setup do Python 3.11
+  3. Instalação de dependências
+  4. Execução de testes com `pytest --cov --cov-fail-under=80`
+- **Falha:** Qualquer teste falho ou cobertura abaixo de 80% interrompe o pipeline
+
+### Deploy (Render)
+
+O deploy no Render é feito via `render.yaml` (Blueprints) ou manualmente. Consulte a seção "Deploy no Render" acima.
 
 ## Licença
 

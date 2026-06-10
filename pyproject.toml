@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+
+[tool.coverage.run]
+source = ["backend"]
+omit = ["backend/tests/*", "backend/alembic/*"]
