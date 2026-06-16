@@ -202,37 +202,6 @@ SEED_QUIZZES = [
     },
     {
         "user_id": None,
-        "title": "Feedback de Curso Online",
-        "description": "Sua opinião é essencial para melhorarmos nossos cursos. Responda com sinceridade!",
-        "questions": [
-            {"id": 1, "text": "Como você avalia o conteúdo do curso?", "type": "rating", "required": True,
-             "options": [
-                 {"id": 1, "text": "1 - Muito ruim"}, {"id": 2, "text": "2 - Ruim"},
-                 {"id": 3, "text": "3 - Regular"}, {"id": 4, "text": "4 - Bom"},
-                 {"id": 5, "text": "5 - Excelente"},
-             ]},
-            {"id": 2, "text": "Quais temas você gostaria de ver em próximos cursos? (pode escolher mais de um)", "type": "multiple_choice", "required": True,
-             "options": [
-                 {"id": 1, "text": "Inteligência Artificial"}, {"id": 2, "text": "Desenvolvimento Web"},
-                 {"id": 3, "text": "Ciência de Dados"}, {"id": 4, "text": "Segurança da Informação"},
-                 {"id": 5, "text": "Cloud Computing"}, {"id": 6, "text": "UX/UI Design"},
-             ]},
-            {"id": 3, "text": "A carga horária do curso foi adequada?", "type": "single_choice", "required": True,
-             "options": [
-                 {"id": 1, "text": "Sim, perfeita"}, {"id": 2, "text": "Poderia ser maior"},
-                 {"id": 3, "text": "Poderia ser menor"},
-             ]},
-            {"id": 4, "text": "O que você mais gostou no curso?", "type": "text", "required": False},
-            {"id": 5, "text": "O que poderia ser melhorado?", "type": "text", "required": False},
-            {"id": 6, "text": "Você recomendaria este curso para outras pessoas?", "type": "single_choice", "required": True,
-             "options": [
-                 {"id": 1, "text": "Com certeza"}, {"id": 2, "text": "Provavelmente sim"},
-                 {"id": 3, "text": "Talvez"}, {"id": 4, "text": "Não"},
-             ]},
-        ],
-    },
-    {
-        "user_id": None,
         "title": "Pesquisa de Estilo de Vida",
         "description": "Conte-nos sobre seus hábitos e preferências para ajudarmos a criar conteúdo relevante.",
         "questions": [
