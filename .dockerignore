@@ -1,0 +1,16 @@
+.git
+.github
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.coverage
+.venv
+.env
+backend/quiz.db
+backend/*.db
+backend/.coverage
+.gitignore
+README.md
+docker-compose.yml
+render.yaml
+Procfile

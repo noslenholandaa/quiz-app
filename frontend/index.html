@@ -16,17 +16,20 @@
                 </div>
                 <div id="user-area" class="user-area hidden">
                     <span id="user-name" class="user-name"></span>
+                    <button id="theme-toggle" class="theme-btn" onclick="Theme.toggle()" aria-label="Alternar tema" title="Alternar tema"></button>
                     <a href="/static/dashboard.html" class="history-link">Dashboard</a>
+                    <a href="/static/leaderboard.html" class="history-link">Ranking</a>
                     <a href="/static/manage.html" class="history-link" id="manage-link">Gerenciar</a>
                     <a href="/static/history.html" class="history-link">Histórico</a>
                     <button class="logout-btn" onclick="logout()">Sair</button>
                 </div>
             </div>
         </header>
+        <main>
 
         <div id="quiz-list-section">
             <div id="quiz-list" class="quiz-list">
-                <div class="loading">Carregando...</div>
+                <div class="loading"><div class="spinner"></div>Carregando...</div>
             </div>
         </div>
 
@@ -50,8 +53,11 @@
             </div>
             <div id="result-answers"></div>
         </div>
+    </main>
     </div>
 
+    <script src="theme.js"></script>
+    <script src="toast.js"></script>
     <script src="auth.js"></script>
     <script src="script.js"></script>
 </body>

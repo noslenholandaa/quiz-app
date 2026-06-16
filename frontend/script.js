@@ -10,15 +10,24 @@ async function loadUser() {
             const manageLink = document.getElementById('manage-link');
             if (manageLink) manageLink.style.display = 'none';
         }
-    } catch {
-        logout();
+    } catch (err) {
+        if (err.status === 401) { logout(); }
+        else { Toast.error(handleApiError(err)); logout(); }
     }
 }
 
 async function loadQuizList() {
+    const container = document.getElementById('quiz-list');
+    container.innerHTML = Array(4).fill(`
+        <div class="quiz-card" style="pointer-events:none">
+            <div class="skeleton" style="height:20px;width:60%;margin-bottom:8px"></div>
+            <div class="skeleton" style="height:14px;width:90%;margin-bottom:4px"></div>
+            <div class="skeleton" style="height:14px;width:40%"></div>
+            <div class="skeleton" style="height:22px;width:90px;margin-top:10px;border-radius:20px"></div>
+        </div>
+    `).join('');
     try {
         const quizzes = await apiGet('/quizzes');
-        const container = document.getElementById('quiz-list');
         container.innerHTML = quizzes.map(q => `
             <div class="quiz-card" onclick="selectQuiz(${q.id})">
                 <h3>${escapeHtml(q.title)}</h3>
@@ -28,7 +37,8 @@ async function loadQuizList() {
         `).join('');
     } catch (err) {
         document.getElementById('quiz-list').innerHTML =
-            `<div class="error">Erro ao carregar quizzes: ${err.message}</div>`;
+            `<div class="error">${handleApiError(err)}</div>`;
+        Toast.error(handleApiError(err));
     }
 }
 
@@ -37,7 +47,7 @@ async function selectQuiz(quizId) {
         currentQuiz = await apiGet(`/quizzes/${quizId}`);
         renderForm(currentQuiz);
     } catch (err) {
-        alert('Erro ao carregar quiz: ' + err.message);
+        Toast.error(handleApiError(err));
     }
 }
 
@@ -159,7 +169,7 @@ async function submitForm(event) {
         const result = await apiPost(`/quizzes/${currentQuiz.id}/submit`, { answers });
         showResult(result);
     } catch (err) {
-        alert('Erro: ' + err.message);
+        Toast.error(handleApiError(err));
     } finally {
         btn.disabled = false;
         btn.textContent = 'Enviar respostas';

@@ -8,13 +8,15 @@ from fastapi.testclient import TestClient
 _test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _test_dir)
 
-os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(tempfile.gettempdir(), 'quiz_app_test.db')}"
+if "DATABASE_URL" not in os.environ:
+    os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(tempfile.gettempdir(), 'quiz_app_test.db')}"
 os.environ["RATE_LIMIT_REGISTER_PER_HOUR"] = "1000"
 os.environ["RATE_LIMIT_LOGIN_PER_MINUTE"] = "1000"
 os.environ["ADMIN_EMAILS"] = "test@example.com,userb@example.com"
+os.environ["ENVIRONMENT"] = "testing"
 
-from database import Base, engine, get_db
-from main import app
+from database import Base, engine # noqa: E402
+from main import app              # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -32,6 +34,16 @@ def client(_clean_db):
 
 
 @pytest.fixture
+def db_session(_clean_db):
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture
 def test_user(client):
     resp = client.post("/auth/register", json={
         "name": "Test User",
@@ -42,6 +54,10 @@ def test_user(client):
     data = resp.json()
     return data["access_token"], data["refresh_token"]
 
+@pytest.fixture
+def test_user_id(client, test_user):
+    me = client.get("/auth/me", headers={"Authorization": f"Bearer {test_user[0]}"})
+    return me.json()["id"] if me.status_code == 200 else None
 
 @pytest.fixture
 def user_b(client):

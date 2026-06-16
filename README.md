@@ -1,64 +1,144 @@
 # Quiz App
 
-Aplicação full-stack de formulários e quizzes com autenticação JWT, CRUD completo, dashboard analítico e deploy automatizado no Render.
-
-## Stack
-
-- **Backend:** Python 3 + FastAPI + SQLAlchemy 2.0
-- **Frontend:** HTML puro + CSS + JavaScript (sem frameworks)
-- **Autenticação:** JWT (access + refresh token com rotação)
-- **Banco de dados:** SQLite (dev) / PostgreSQL 16 (prod)
-- **Migrações:** Alembic
-- **Deploy:** Render (Web Service + PostgreSQL)
+Aplicação full-stack de formulários e quizzes com autenticação JWT, CRUD completo, dashboard analítico com métricas, sistema de badges, leaderboard, busca, categorias/tags, recuperação de senha, controle de acesso por papéis (RBAC), rate limiting, logging estruturado, request ID tracking, endpoint de métricas, health check expandido e deploy automatizado no Render.
 
 ## Funcionalidades
 
-- Registro e login de usuários (bcrypt)
+- Registro e login de usuários com bcrypt
 - Sessões com refresh token rotation e revogação
 - CRUD de quizzes com 4 tipos de pergunta: texto, múltipla escolha, escolha única, avaliação (rating)
-- Submissão de respostas com validação
-- Histórico completo de submissões
+- Submissão de respostas com validação e scoring automático
+- Histórico completo de submissões com paginação
 - Dashboard com métricas e estatísticas (7 e 30 dias)
+- Sistema de badges (Primeiro Quiz, Perfeccionista, Criador, Quizzeiro, Veterano)
+- Leaderboard global e por quiz
+- Perfil público com quizzes criados, badges e ranking
+- Busca textual em quizzes com paginação
+- Categorias e tags para organização de quizzes
+- Recuperação de senha com token temporário (hash SHA-256)
+- RBAC (admin/user) com endpoints administrativos
 - Rate limiting (login: 10/min, registro: 5/h)
-- Headers de segurança (HSTS, X-Content-Type-Options, etc.)
-- Logs estruturados (texto ou JSON)
+- Headers de segurança (HSTS, X-Content-Type-Options, X-Frame-Options, X-XSS-Protection)
+- Request ID tracking (UUID + header X-Request-ID)
+- Logs estruturados (texto ou JSON) com request_id
+- Endpoint de métricas (`GET /metrics`)
+- Health check expandido (`GET /health`)
 - Seed de quizzes padrão na primeira execução
+- SQL aggregation refactor (performance: de O(N) para O(1) em agregações)
+- Testes automatizados com cobertura mínima de 90%
+- CI/CD com GitHub Actions
+- Deploy automatizado no Render via Blueprints
+
+## Stack
+
+| Componente | Tecnologia |
+|------------|-----------|
+| **Backend** | Python 3.9+ / FastAPI |
+| **Frontend** | HTML5 + CSS3 + JavaScript (vanilla) |
+| **Autenticação** | JWT (access token 15min + refresh token 7 dias com rotação) |
+| **ORM** | SQLAlchemy 2.0 |
+| **Migrações** | Alembic |
+| **Banco (dev)** | SQLite |
+| **Banco (prod)** | PostgreSQL 16 |
+| **Hashing** | bcrypt (senhas) / SHA-256 (tokens) |
+| **Testes** | pytest + pytest-cov |
+| **CI/CD** | GitHub Actions |
+| **Deploy** | Render (Web Service + PostgreSQL) |
+| **Container** | Docker + Docker Compose |
+
+## Arquitetura
+
+```
+Frontend (HTML/CSS/JS)
+       ↓
+   FastAPI (Middleware: Request ID, Timing, CORS, Rate Limit)
+       ↓
+ Auth Layer (JWT + bcrypt + Refresh Token Rotation)
+       ↓
+ Business Layer (CRUD, Dashboard, Ranking, Leaderboard, Badges)
+       ↓
+  SQLAlchemy 2.0 ORM (selectinload, aggregation)
+       ↓
+ SQLite (dev) / PostgreSQL 16 (prod)
+```
+
+[Diagrama de arquitetura detalhado](backend/docs/architecture-diagram.md) | [Documentação de arquitetura](backend/docs/architecture.md)
 
 ## Estrutura do Projeto
 
 ```
 quiz-app/
 ├── backend/
+│   ├── Dockerfile
 │   ├── alembic/
-│   │   ├── versions/
-│   │   │   └── 0d2d4063362d_initial_schema.py
+│   │   ├── versions/        # Migrações
 │   │   └── env.py
 │   ├── alembic.ini
-│   ├── tests/
-│   │   ├── __init__.py
+│   ├── docs/                # Documentação de arquitetura
+│   │   ├── architecture.md
+│   │   ├── architecture-diagram.md
+│   │   └── json-scalability-analysis.md
+│   ├── tests/               # 148+ testes
 │   │   ├── conftest.py
 │   │   ├── test_auth.py
-│   │   ├── test_refresh_tokens.py
 │   │   ├── test_quizzes.py
 │   │   ├── test_submissions.py
 │   │   ├── test_dashboard.py
-│   │   └── test_health.py
-│   ├── main.py          # Rotas da API + lifespan
-│   ├── database.py      # Modelos SQLAlchemy + seed
-│   ├── models.py        # Schemas Pydantic
-│   ├── auth.py          # JWT + refresh + sessions
-│   ├── config.py        # Variáveis de ambiente
+│   │   ├── test_leaderboard.py
+│   │   ├── test_rbac.py
+│   │   ├── test_search.py
+│   │   ├── test_categories.py
+│   │   ├── test_password_reset.py
+│   │   ├── test_refresh_tokens.py
+│   │   ├── test_health.py
+│   │   ├── test_sprint13.py
+│   │   ├── test_sprint141.py
+│   │   ├── test_sprint142.py
+│   │   ├── test_sprint145.py
+│   │   └── test_email_service.py
+│   ├── services/
+│   │   ├── __init__.py
+│   │   └── email_service.py  # Envio de email via SMTP
+│   ├── templates/
+│   │   ├── password_reset.html
+│   │   └── password_reset.txt
+│   ├── main.py              # Rotas da API + middleware + lifespan
+│   ├── database.py          # Modelos SQLAlchemy + seed data
+│   ├── models.py            # Schemas Pydantic
+│   ├── auth.py              # JWT + refresh tokens + password reset
+│   ├── config.py            # Variáveis de ambiente
 │   └── requirements.txt
 ├── frontend/
-│   ├── index.html       # Lista de quizzes + formulário
-│   ├── dashboard.html   # Métricas e estatísticas
-│   ├── history.html     # Histórico de submissões
-│   ├── manage.html      # Gerenciamento de quizzes
-│   ├── quiz-editor.html # Criar/editar quizzes
-│   ├── auth.js          # Central de autenticação
-│   ├── script.js        # Lógica do index
-│   └── style.css        # Estilos globais
+│   ├── index.html           # Lista de quizzes + formulário
+│   ├── dashboard.html       # Métricas e estatísticas
+│   ├── history.html         # Histórico de submissões
+│   ├── manage.html          # Gerenciamento de quizzes
+│   ├── quiz-editor.html     # Criar/editar quizzes
+│   ├── admin.html           # Painel administrativo
+│   ├── leaderboard.html     # Leaderboard
+│   ├── profile.html         # Perfil público
+│   ├── login.html           # Login
+│   ├── register.html        # Registro
+│   ├── forgot-password.html # Recuperação de senha
+│   ├── reset-password.html  # Redefinição de senha
+│   ├── auth.js              # Central de autenticação
+│   ├── script.js            # Lógica do index
+│   └── style.css            # Estilos globais
+├── docker-compose.yml         # Desenvolvimento
+├── docker-compose.prod.yml    # Produção (Nginx + Certbot + PostgreSQL)
+├── deploy/
+│   └── nginx/
+│       └── nginx.conf         # Reverse proxy + SSL + gzip
+├── scripts/
+│   ├── backup_postgres.sh     # Backup PostgreSQL com rotação
+│   └── restore_postgres.sh    # Restore com confirmação
+├── docs/
+│   ├── deployment.md          # Guia completo de deploy
+│   ├── monitoring.md          # Healthcheck + métricas + alertas
+│   └── https.md               # Let's Encrypt + Certbot
+├── .env.example
 ├── Procfile
+├── pyproject.toml
 ├── render.yaml
 └── README.md
 ```
@@ -75,15 +155,18 @@ quiz-app/
 | GET | `/auth/sessions` | Listar sessões ativas |
 | DELETE | `/auth/sessions/{id}` | Revogar sessão |
 | GET | `/auth/me` | Dados do usuário logado |
+| POST | `/auth/forgot-password` | Solicitar reset de senha |
+| POST | `/auth/reset-password` | Redefinir senha |
 
 ### Quizzes
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | GET | `/quizzes` | Listar quizzes (públicos + próprios) |
+| GET | `/quizzes/search?q=` | Buscar quizzes |
 | GET | `/quizzes/{id}` | Detalhes do quiz |
-| POST | `/quizzes` | Criar quiz (autenticado) |
-| PUT | `/quizzes/{id}` | Atualizar quiz (apenas criador) |
-| DELETE | `/quizzes/{id}` | Remover quiz (apenas criador) |
+| POST | `/quizzes` | Criar quiz (admin) |
+| PUT | `/quizzes/{id}` | Atualizar quiz (criador) |
+| DELETE | `/quizzes/{id}` | Remover quiz (criador) |
 | POST | `/quizzes/{id}/submit` | Submeter respostas |
 | GET | `/me/quizzes` | Listar quizzes do usuário |
 | GET | `/me/submissions` | Histórico de submissões |
@@ -92,13 +175,38 @@ quiz-app/
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | GET | `/me/dashboard` | Métricas consolidadas |
-| GET | `/me/stats` | Estatísticas por período |
+| GET | `/me/stats` | Estatísticas por período (7/30 dias) |
 
-### Health Check
+### Leaderboard
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| GET | `/health` | Status da aplicação |
+| GET | `/leaderboard` | Ranking global |
+| GET | `/quizzes/{id}/leaderboard` | Ranking por quiz |
+
+### Perfil
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/users/{id}/profile` | Perfil público com badges |
+
+### Categorias e Tags
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/categories` | Listar categorias |
+| GET | `/tags` | Listar tags |
+
+### Admin
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/admin/dashboard` | Painel admin (usuários, quizzes, submissões) |
+| GET | `/admin/users` | Listar todos os usuários |
+| PUT/PATCH | `/admin/users/{id}/role` | Alterar papel do usuário |
+
+### Observabilidade
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/health` | Status da aplicação (expandido) |
 | GET | `/health/database` | Conectividade do banco |
+| GET | `/metrics` | Métricas (uptime, versão, totais) |
 
 ## Variáveis de Ambiente
 
@@ -108,6 +216,7 @@ quiz-app/
 | `REFRESH_SECRET_KEY` | `super-refresh-secret-mude-em-producao` | Chave JWT refresh token |
 | `DATABASE_URL` | `sqlite:///./quiz.db` | URL do banco de dados |
 | `CORS_ORIGINS` | `*` | Origens permitidas (separadas por vírgula) |
+| `ALLOWED_HOSTS` | `*` | Hosts permitidos (obrigatório em produção) |
 | `ENVIRONMENT` | `development` | `development` ou `production` |
 | `LOG_LEVEL` | `INFO` | Nível de log (DEBUG, INFO, WARNING, ERROR) |
 | `LOG_FORMAT` | `text` | Formato do log (`text` ou `json`) |
@@ -115,7 +224,17 @@ quiz-app/
 | `REFRESH_TOKEN_EXPIRE_DAYS` | `7` | Expiração do refresh token |
 | `RATE_LIMIT_LOGIN_PER_MINUTE` | `10` | Máx tentativas de login/minuto |
 | `RATE_LIMIT_REGISTER_PER_HOUR` | `5` | Máx registros/hora |
+| `ADMIN_EMAILS` | `admin@example.com` | Emails que viram admin no registro |
+| `ADMIN_EMAIL` | `` | Email para criação automática de admin |
+| `ADMIN_PASSWORD` | `` | Senha para criação automática de admin |
 | `PORT` | `8000` | Porta do servidor |
+| `SMTP_HOST` | `` | Servidor SMTP (ex: `smtp.gmail.com`) |
+| `SMTP_PORT` | `587` | Porta SMTP |
+| `SMTP_USERNAME` | `` | Usuário SMTP |
+| `SMTP_PASSWORD` | `` | Senha SMTP (Gmail: App Password de 16 caracteres) |
+| `SMTP_FROM` | `noreply@quizapp.com` | Remetente dos emails |
+| `SMTP_USE_TLS` | `true` | Habilitar TLS |
+| `SMTP_TIMEOUT` | `30` | Timeout de conexão SMTP (segundos) |
 
 ## Desenvolvimento Local
 
@@ -124,7 +243,7 @@ quiz-app/
 git clone <repo>
 cd quiz-app
 
-# 2. Criar virtualenv (opcional mas recomendado)
+# 2. Criar virtualenv
 python -m venv .venv
 source .venv/bin/activate   # Linux/Mac
 .venv\Scripts\activate      # Windows
@@ -136,109 +255,207 @@ pip install -r backend/requirements.txt
 cd backend
 alembic upgrade head
 
-# 5. Iniciar servidor
+# 5. Iniciar servidor (com reload)
 uvicorn main:app --reload --port 8000
 
 # 6. Acessar
 # http://localhost:8000
 ```
 
-O banco SQLite (`backend/quiz.db`) é criado automaticamente na primeira execução com dados seed.
+O banco SQLite (`backend/quiz.db`) é criado automaticamente na primeira execução com dados seed (4 quizzes + 1 quiz de tecnologia).
+
+## Password Reset Email
+
+O fluxo de recuperação de senha envia emails via SMTP em produção e desenvolvimento.
+Em ambiente `testing`, o envio é ignorado (testes não dependem de SMTP).
+
+### Configuração SMTP
+
+| Provedor | SMTP_HOST | SMTP_PORT | Notas |
+|----------|-----------|-----------|-------|
+| **Gmail** | `smtp.gmail.com` | `587` | Usar [App Password](https://support.google.com/accounts/answer/185833) de 16 caracteres |
+| **Mailtrap** | `smtp.mailtrap.io` | `587` | Ideal para testes — emails capturados no dashboard |
+| **SendGrid** | `smtp.sendgrid.com` | `587` | Usar API Key como senha |
+| **Corporativo** | _(variável)_ | `587` ou `465` | Consultar equipe de TI |
+
+### Exemplo com Gmail
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=seuemail@gmail.com
+SMTP_PASSWORD=xxxx xxxx xxxx xxxx
+SMTP_FROM=seuemail@gmail.com
+SMTP_USE_TLS=true
+SMTP_TIMEOUT=30
+```
+
+### Exemplo com Mailtrap (desenvolvimento)
+
+```env
+SMTP_HOST=smtp.mailtrap.io
+SMTP_PORT=587
+SMTP_USERNAME=seu_username_mailtrap
+SMTP_PASSWORD=seu_password_mailtrap
+SMTP_FROM=noreply@quizapp.com
+SMTP_USE_TLS=true
+```
+
+### Fluxo
+
+1. Usuário solicita redefinição → `POST /auth/forgot-password`
+2. Token SHA-256 gerado com validade de **1 hora**
+3. Email enviado com link contendo token
+4. Usuário acessa link → `POST /auth/reset-password` com nova senha
+5. Token marcado como `used` — reutilização bloqueada
+
+Em **development**, o link de reset também é logado no console para testes locais.
+
+### Troubleshooting
+
+| Problema | Causa provável | Solução |
+|----------|---------------|---------|
+| `SMTP authentication failed` | Senha incorreta ou App Password mal formatada | Gerar novo App Password (Gmail) ou verificar credenciais |
+| `Connection refused` | Porta bloqueada ou host incorreto | Verificar SMTP_HOST e SMTP_PORT; testar com `telnet` |
+| `Timeout` | Firewall ou rede lenta | Aumentar `SMTP_TIMEOUT`; verificar conectividade |
+| TLS incorreto | Porta 465 usa SSL (não TLS) | Para porta 465, usar `SMTP_USE_TLS=false` |
+
+## Docker
+
+```bash
+# 1. Copiar arquivo de ambiente
+cp .env.example .env
+
+# 2. Build e iniciar
+docker compose up --build
+
+# 3. Parar
+docker compose down
+
+# 4. Logs
+docker compose logs -f
+
+# 5. Remover containers + volume (apaga dados)
+docker compose down -v
+```
+
+### Estrutura de inicialização
+
+```
+Docker Compose
+│
+├── PostgreSQL 16 (porta 5432)
+│   ├── healthcheck: pg_isready
+│   └── volume: postgres_data (persistência)
+│
+└── App FastAPI (porta 8000)
+    ├── healthcheck: GET /health
+    ├── depende de: postgres saudável
+    ├── CMD: alembic upgrade head → uvicorn
+    └── variáveis via .env / environment
+```
+
+## Executar Testes
+
+```bash
+# Todos os testes
+cd backend && python -m pytest tests/ -v
+
+# Com cobertura
+cd backend && python -m pytest tests/ -v --cov=. --cov-report=term-missing
+
+# Cobertura mínima: 90% (falha automática abaixo)
+```
+
+## Executar Migrações
+
+```bash
+cd backend
+
+# Criar nova migração
+alembic revision --autogenerate -m "descricao"
+
+# Aplicar migrações
+alembic upgrade head
+
+# Rollback (última)
+alembic downgrade -1
+```
 
 ## Deploy no Render
 
-### 1. Push para o GitHub
+### Opção A — Blueprints (automático)
 
-```bash
-git add .
-git commit -m "Sprint 7 — Deploy, Observabilidade e Operação"
-git push origin main
-```
+O arquivo `render.yaml` define o Web Service + PostgreSQL automaticamente:
+1. Conecte o repositório no Render
+2. Vá em **Blueprints** → **New Blueprint Print**
+3. Selecione o repositório
 
-### 2. Criar Web Service no Render
+### Opção B — Manual
 
-**Opção A — Usando `render.yaml` (Blueprints):**
-- Conecte o repositório no Render
-- Vá em **Blueprints** → **New Blueprint Print**
-- Selecione o repositório
-- O Render lerá `render.yaml` e criará o Web Service + PostgreSQL automaticamente
-
-**Opção B — Manual:**
-- **Web Service:**
-  - Runtime: **Python**
-  - Build Command: `pip install -r backend/requirements.txt`
-  - Start Command: `cd backend && alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT`
-  - Variáveis: conforme tabela acima
-- **PostgreSQL:** Adicione um banco PostgreSQL via Render Dashboard
-  - A variável `DATABASE_URL` será injetada automaticamente
-
-### 3. Configurar domínio / health check
-
-- Path do health check: `/health`
-- O Render usará este endpoint para verificar se a aplicação está no ar
+- **Runtime:** Python
+- **Build Command:** `pip install -r backend/requirements.txt`
+- **Start Command:** `cd backend && alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT`
+- **Health Check Path:** `/health`
 
 ## Migração SQLite → PostgreSQL
 
 A migração é transparente graças ao SQLAlchemy + Alembic:
 
 ```bash
-# 1. No Render, configure DATABASE_URL com a connection string PostgreSQL
-
-# 2. O startCommand roda automaticamente:
+# Configure DATABASE_URL com a connection string PostgreSQL
 cd backend && alembic upgrade head
-
-# 3. A migration inicial (0d2d4063362d) cria todas as tabelas no PostgreSQL
-
-# 4. O seed de quizzes padrão é executado automaticamente na primeira inicialização
 ```
 
-**Pontos de atenção:**
-- `check_same_thread` é usado apenas com SQLite (detectado automaticamente em `database.py`)
-- `psycopg2-binary` está nas requirements para PostgreSQL
-- JSON columns (`answers`, `questions`) funcionam nativamente em ambos bancos
-- Refresh tokens expirados e quizzes com `user_id=NULL` (seed) são compatíveis com ambos
-
-## Testes
-
-### Pré-requisitos
-
-```bash
-pip install -r backend/requirements.txt
-```
-
-### Executar todos os testes
-
-```bash
-cd backend && python -m pytest tests/ -v
-```
-
-### Executar com cobertura
-
-```bash
-cd backend && python -m pytest tests/ -v --cov=. --cov-report=term-missing
-```
-
-### Meta de cobertura
-
-Mínimo de 80%. O CI falha automaticamente se a cobertura ficar abaixo deste limiar.
+O seed de quizzes padrão é executado automaticamente na primeira inicialização.
 
 ## CI/CD
 
-### GitHub Actions
+O workflow do GitHub Actions (`.github/workflows/tests.yml`):
+- **Trigger:** push ou pull request para `main`
+- **Passos:** Python 3.11 → instalar dependências → pytest com cobertura ≥ 80%
+- **Falha:** qualquer teste falho ou cobertura < 80% interrompe o pipeline
 
-O repositório possui um workflow automatizado em `.github/workflows/tests.yml`:
+## Cobertura de Testes
 
-- **Trigger:** `push` ou `pull_request` para `main`
-- **Passos:**
-  1. Checkout do código
-  2. Setup do Python 3.11
-  3. Instalação de dependências
-  4. Execução de testes com `pytest --cov --cov-fail-under=80`
-- **Falha:** Qualquer teste falho ou cobertura abaixo de 80% interrompe o pipeline
+**Meta:** ≥ 90%
+**Atual:** 90%+
 
-### Deploy (Render)
+| Categoria | Arquivos | Status |
+|-----------|----------|--------|
+| Autenticação | `auth.py`, `test_auth.py` | 99% |
+| Quizzes | `main.py`, `test_quizzes.py` | 90% |
+| Dashboard | `test_dashboard.py` | 100% |
+| Leaderboard | `test_leaderboard.py` | 100% |
+| RBAC | `test_rbac.py` | 100% |
+| Password Reset | `test_password_reset.py` | 100% |
+Email Service | `test_email_service.py` | 100% |
+| Search | `test_search.py` | 100% |
+| Refresh Tokens | `test_refresh_tokens.py` | 100% |
+| Categories/Tags | `test_categories.py` | 100% |
+| Health/Metrics | `test_health.py`, `test_sprint145.py` | 100% |
+| Models | `models.py` | 100% |
+| Database | `database.py` | 96% |
+| Performance | `test_sprint142.py` | 100% |
 
-O deploy no Render é feito via `render.yaml` (Blueprints) ou manualmente. Consulte a seção "Deploy no Render" acima.
+## Roadmap
+
+- [x] Autenticação JWT com refresh token rotation
+- [x] CRUD de quizzes com 4 tipos de pergunta
+- [x] Dashboard com métricas e estatísticas
+- [x] Admin panel com RBAC
+- [x] CI/CD com GitHub Actions
+- [x] Deploy no Render
+- [x] Categorias e tags
+- [x] Busca textual em quizzes
+- [x] Leaderboard global e por quiz
+- [x] Perfil público com badges e ranking
+- [x] Recuperação de senha
+- [x] Performance: SQL aggregation refactor
+- [x] Observabilidade: request ID, metrics, structured logging
+- [ ] Cache com Redis (próximo sprint)
+- [ ] Modo escuro no frontend
+- [ ] WebSockets para quizzes ao vivo
 
 ## Licença
 

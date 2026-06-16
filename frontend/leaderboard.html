@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking — Quiz App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <div>
+                    <h1>Quiz App</h1>
+                    <p>Ranking global de participantes</p>
+                </div>
+                <div id="user-area" class="user-area hidden">
+                    <span id="user-name" class="user-name"></span>
+                    <button id="theme-toggle" class="theme-btn" onclick="Theme.toggle()" aria-label="Alternar tema" title="Alternar tema"></button>
+                    <a href="/static/dashboard.html" class="history-link">Dashboard</a>
+                    <button class="logout-btn" onclick="logout()">Sair</button>
+                </div>
+            </div>
+        </header>
+        <main>
+
+        <nav class="nav-bar" aria-label="Navegação">
+            <a href="/static/index.html" class="nav-link">&larr; Voltar</a>
+        </nav>
+
+        <div id="lb-loading" class="loading">
+            <div class="spinner"></div>Carregando ranking...
+            <div style="margin-top:1rem;max-width:500px;margin-left:auto;margin-right:auto">
+                <div class="skeleton" style="height:60px;margin-bottom:8px;border-radius:10px"></div>
+                <div class="skeleton" style="height:60px;margin-bottom:8px;border-radius:10px"></div>
+                <div class="skeleton" style="height:60px;margin-bottom:8px;border-radius:10px"></div>
+                <div class="skeleton" style="height:60px;margin-bottom:8px;border-radius:10px"></div>
+                <div class="skeleton" style="height:60px;border-radius:10px"></div>
+            </div>
+        </div>
+        <div id="lb-error" class="error hidden" role="alert"></div>
+
+        <div id="lb-content" class="hidden">
+            <div class="dash-section">
+                <div class="dash-section-header">
+                    <h3>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7"/><path d="M4 22h16"/><path d="M10 22V8h4v14"/></svg>
+                        Ranking Global
+                    </h3>
+                </div>
+                <div id="lb-list"></div>
+                <div id="lb-pagination" class="lb-pagination"></div>
+            </div>
+        </div>
+    </main>
+    </div>
+
+    <script src="theme.js"></script>
+    <script src="toast.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        let currentPage = 1;
+        const PAGE_SIZE = 20;
+
+        function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        function getPositionClass(pos) {
+            if (pos === 1) return 'lb-rank-gold';
+            if (pos === 2) return 'lb-rank-silver';
+            if (pos === 3) return 'lb-rank-bronze';
+            return '';
+        }
+
+        function getPositionIcon(pos) {
+            if (pos === 1) return '🥇';
+            if (pos === 2) return '🥈';
+            if (pos === 3) return '🥉';
+            return `#${pos}`;
+        }
+
+        function renderLeaderboard(entries) {
+            const el = document.getElementById('lb-list');
+            if (!entries || entries.length === 0) {
+                el.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 6 9 6 9z"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 18 9 18 9z"/><path d="M4 22h16"/><path d="M10 22V2h4v20"/></svg></div><h3>Nenhum dado ainda</h3><p>Quando houver submissões, o ranking será exibido aqui.</p></div>';
+                return;
+            }
+            el.innerHTML = entries.map((e, i) => {
+                const pos = (currentPage - 1) * PAGE_SIZE + i + 1;
+                const posClass = getPositionClass(pos);
+                const posIcon = getPositionIcon(pos);
+                return `
+                    <div class="lb-entry ${posClass}">
+                        <div class="lb-pos">${posIcon}</div>
+                        <div class="lb-info">
+                            <a href="/static/profile.html?user_id=${e.user_id}" class="lb-name">${escapeHtml(e.name)}</a>
+                        </div>
+                        <div class="lb-stats">
+                            <div class="lb-stat">
+                                <span class="lb-stat-value">${e.total_score}</span>
+                                <span class="lb-stat-label">pontos</span>
+                            </div>
+                            <div class="lb-stat">
+                                <span class="lb-stat-value">${e.submissions}</span>
+                                <span class="lb-stat-label">submissões</span>
+                            </div>
+                            <div class="lb-stat">
+                                <span class="lb-stat-value">${e.average_percentage}%</span>
+                                <span class="lb-stat-label">média</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderPagination(entries) {
+            const el = document.getElementById('lb-pagination');
+            if (entries.length < PAGE_SIZE && currentPage === 1) {
+                el.innerHTML = '';
+                return;
+            }
+            el.innerHTML = `
+                <button class="mc-btn mc-edit" onclick="goPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>Anterior</button>
+                <span class="lb-page-info">Página ${currentPage}</span>
+                <button class="mc-btn mc-edit" onclick="goPage(${currentPage + 1})" ${entries.length < PAGE_SIZE ? 'disabled' : ''}>Próxima</button>
+            `;
+        }
+
+        async function goPage(page) {
+            if (page < 1) return;
+            currentPage = page;
+            document.getElementById('lb-loading').classList.remove('hidden');
+            document.getElementById('lb-content').classList.add('hidden');
+            try {
+                const data = await apiGet(`/leaderboard?page=${page}&limit=${PAGE_SIZE}`);
+                renderLeaderboard(data);
+                renderPagination(data);
+                document.getElementById('lb-loading').classList.add('hidden');
+                document.getElementById('lb-content').classList.remove('hidden');
+            } catch (err) {
+                document.getElementById('lb-loading').classList.add('hidden');
+                document.getElementById('lb-error').textContent = handleApiError(err);
+                document.getElementById('lb-error').classList.remove('hidden');
+            }
+        }
+
+        async function loadLeaderboard() {
+            try {
+                const data = await apiGet(`/leaderboard?page=1&limit=${PAGE_SIZE}`);
+                renderLeaderboard(data);
+                renderPagination(data);
+                document.getElementById('lb-loading').classList.add('hidden');
+                document.getElementById('lb-content').classList.remove('hidden');
+            } catch (err) {
+                document.getElementById('lb-loading').classList.add('hidden');
+                document.getElementById('lb-error').textContent = handleApiError(err);
+                document.getElementById('lb-error').classList.remove('hidden');
+            }
+        }
+
+        async function loadUser() {
+            try {
+                const user = await fetchMe();
+                document.getElementById('user-name').textContent = user.name;
+                document.getElementById('user-area').classList.remove('hidden');
+            } catch (err) {
+                if (err.status === 401) { logout(); }
+                else { Toast.error(handleApiError(err)); logout(); }
+            }
+        }
+
+        redirectIfNotAuth();
+        loadUser();
+        loadLeaderboard();
+    </script>
+</body>
+</html>

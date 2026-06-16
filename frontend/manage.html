@@ -16,28 +16,36 @@
                 </div>
                 <div id="user-area" class="user-area hidden">
                     <span id="user-name" class="user-name"></span>
+                    <button id="theme-toggle" class="theme-btn" onclick="Theme.toggle()" aria-label="Alternar tema" title="Alternar tema"></button>
                     <button class="logout-btn" onclick="logout()">Sair</button>
                 </div>
             </div>
         </header>
+        <main>
 
-        <div class="nav-bar">
+        <nav class="nav-bar" aria-label="Navegação">
             <a href="/static/index.html" class="nav-link">&larr; Voltar</a>
-            <a href="/static/quiz-editor.html" class="create-btn">+ Novo Quiz</a>
-        </div>
+        </nav>
 
-        <div id="manage-loading" class="loading">Carregando...</div>
-        <div id="manage-error" class="error hidden"></div>
+        <div id="manage-loading" class="loading">
+            <div class="spinner"></div>Carregando...
+        </div>
+        <div id="manage-error" class="error hidden" role="alert"></div>
         <div id="manage-empty" class="empty-state hidden">
-            <div class="empty-icon">📝</div>
+            <div class="empty-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+            </div>
             <h3>Nenhum quiz criado</h3>
-            <p>Crie seu primeiro quiz para começar.</p>
-            <a href="/static/quiz-editor.html" class="submit-btn" style="display:inline-block;width:auto;padding:0.75rem 2rem;text-decoration:none;margin-top:1rem">Criar quiz</a>
+            <p>Crie seu primeiro quiz para gerenciar aqui.</p>
+            <a href="/static/quiz-editor.html" class="dash-empty-cta">Criar quiz</a>
         </div>
         <div id="manage-list" class="manage-list hidden"></div>
+    </main>
     </div>
 
-    <div id="confirm-modal" class="modal-overlay hidden" onclick="closeConfirm(event)">
+    <div id="confirm-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" onclick="closeConfirm(event)">
         <div class="modal-content" style="max-width:420px">
             <h3 style="margin-bottom:0.5rem;color:#2d3748">Excluir quiz</h3>
             <p style="color:#718096;margin-bottom:1.2rem" id="confirm-text"></p>
@@ -48,6 +56,8 @@
         </div>
     </div>
 
+    <script src="theme.js"></script>
+    <script src="toast.js"></script>
     <script src="auth.js"></script>
     <script>
         let quizzes = [];
@@ -98,7 +108,7 @@
                 closeConfirm();
                 loadQuizzes();
             } catch (err) {
-                alert('Erro ao excluir: ' + err.message);
+                Toast.error(handleApiError(err));
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Sim, excluir';
@@ -118,8 +128,9 @@
             } catch (err) {
                 document.getElementById('manage-loading').classList.add('hidden');
                 const errEl = document.getElementById('manage-error');
-                errEl.textContent = 'Erro ao carregar: ' + err.message;
+                errEl.textContent = handleApiError(err);
                 errEl.classList.remove('hidden');
+                Toast.error(handleApiError(err));
             }
         }
 
@@ -128,8 +139,9 @@
                 const user = await fetchMe();
                 document.getElementById('user-name').textContent = user.name;
                 document.getElementById('user-area').classList.remove('hidden');
-            } catch {
-                logout();
+            } catch (err) {
+                if (err.status === 401) { logout(); }
+                else { Toast.error(handleApiError(err)); logout(); }
             }
         }
 

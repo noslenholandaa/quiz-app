@@ -12,13 +12,13 @@ from sqlalchemy.orm import Session
 
 from config import (
     SECRET_KEY,
-    REFRESH_SECRET_KEY,
     ALGORITHM,
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
     ADMIN_EMAILS,
+    ENVIRONMENT,
 )
-from database import get_db, UserDB, RefreshTokenDB
+from database import get_db, UserDB, RefreshTokenDB, PasswordResetTokenDB
 from models import (
     UserCreate,
     UserLogin,
@@ -26,11 +26,17 @@ from models import (
     Token,
     RefreshTokenInput,
     SessionResponse,
+    ForgotPasswordInput,
+    ForgotPasswordResponse,
+    ResetPasswordInput,
 )
+from services.email_service import send_password_reset_email
 
 logger = logging.getLogger("quizapp.auth")
 security = HTTPBearer(auto_error=False)
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+DUMMY_PASSWORD_HASH = bcrypt.hashpw(b"dummy_constant_string", bcrypt.gensalt()).decode("utf-8")
 
 
 def hash_password(password: str) -> str:
@@ -44,9 +50,9 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 
-def create_access_token(user_id: int) -> str:
+def create_access_token(user_id: int, role: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": str(user_id), "exp": expire, "type": "access"}
+    payload = {"sub": str(user_id), "exp": expire, "type": "access", "role": role}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -66,17 +72,6 @@ def decode_access_token(token: str) -> int:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido ou expirado")
 
 
-def get_current_user_optional(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-) -> Optional[int]:
-    if credentials is None:
-        return None
-    try:
-        return decode_access_token(credentials.credentials)
-    except HTTPException:
-        return None
-
-
 def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db),
@@ -90,8 +85,8 @@ def get_current_user(
     return user
 
 
-def build_token_response(user_id: int, db: Session, request: Optional[Request] = None) -> Token:
-    access_token = create_access_token(user_id)
+def build_token_response(user_id: int, role: str, db: Session, request: Optional[Request] = None) -> Token:
+    access_token = create_access_token(user_id, role)
     raw_rt, token_hash = create_refresh_token()
     expires = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
@@ -135,18 +130,23 @@ def register(data: UserCreate, db: Session = Depends(get_db), request: Request =
     db.refresh(user)
 
     logger.info("Usuario registrado id=%s email=%s name=\"%s\" role=%s ip=%s", user.id, user.email, user.name, user.role, request.client.host if request else "?")
-    return build_token_response(user.id, db, request)
+    return build_token_response(user.id, user.role, db, request)
 
 
 @router.post("/login", response_model=Token)
 def login(data: UserLogin, db: Session = Depends(get_db), request: Request = None):
     user = db.query(UserDB).filter(UserDB.email == data.email).first()
-    if not user or not verify_password(data.password.strip(), user.password_hash):
+    if not user:
+        bcrypt.checkpw(data.password.encode("utf-8"), DUMMY_PASSWORD_HASH.encode("utf-8"))
+        logger.warning("Login invalido email=%s ip=%s", data.email, request.client.host if request else "?")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email ou senha inválidos")
+
+    if not verify_password(data.password.strip(), user.password_hash):
         logger.warning("Login invalido email=%s ip=%s", data.email, request.client.host if request else "?")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email ou senha inválidos")
 
     logger.info("Login sucesso user_id=%s ip=%s", user.id, request.client.host if request else "?")
-    return build_token_response(user.id, db, request)
+    return build_token_response(user.id, user.role, db, request)
 
 
 @router.post("/refresh", response_model=Token)
@@ -154,7 +154,7 @@ def refresh_token(data: RefreshTokenInput, db: Session = Depends(get_db), reques
     token_hash = hashlib.sha256(data.refresh_token.encode()).hexdigest()
     rt = db.query(RefreshTokenDB).filter(
         RefreshTokenDB.token_hash == token_hash,
-        RefreshTokenDB.revoked == False,
+        RefreshTokenDB.revoked.is_(False),
     ).first()
 
     if not rt:
@@ -169,7 +169,8 @@ def refresh_token(data: RefreshTokenInput, db: Session = Depends(get_db), reques
     db.commit()
 
     logger.info("Refresh token rotacionado user_id=%s token_id=%s", rt.user_id, rt.id)
-    return build_token_response(rt.user_id, db, request)
+    user = db.query(UserDB).filter(UserDB.id == rt.user_id).first()
+    return build_token_response(rt.user_id, user.role if user else "user", db, request)
 
 
 @router.post("/logout", status_code=204)
@@ -186,7 +187,7 @@ def logout(data: RefreshTokenInput, db: Session = Depends(get_db)):
 def list_sessions(user: UserDB = Depends(get_current_user), db: Session = Depends(get_db)):
     tokens = (
         db.query(RefreshTokenDB)
-        .filter(RefreshTokenDB.user_id == user.id, RefreshTokenDB.revoked == False)
+        .filter(RefreshTokenDB.user_id == user.id,     RefreshTokenDB.revoked.is_(False))
         .order_by(RefreshTokenDB.created_at.desc())
         .all()
     )
@@ -218,3 +219,89 @@ def revoke_session(session_id: int, user: UserDB = Depends(get_current_user), db
 @router.get("/me", response_model=UserResponse)
 def me(user: UserDB = Depends(get_current_user)):
     return user
+
+
+PASSWORD_RESET_EXPIRE_HOURS = 1
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+def forgot_password(data: ForgotPasswordInput, db: Session = Depends(get_db), request: Request = None):
+    message = "Se o email existir, instruções foram enviadas."
+    user = db.query(UserDB).filter(UserDB.email == data.email).first()
+    if user:
+        raw = os.urandom(32).hex()
+        token_hash = hashlib.sha256(raw.encode()).hexdigest()
+        expires = datetime.now(timezone.utc) + timedelta(hours=PASSWORD_RESET_EXPIRE_HOURS)
+        reset = PasswordResetTokenDB(
+            user_id=user.id,
+            token_hash=token_hash,
+            expires_at=expires,
+        )
+        db.add(reset)
+        db.commit()
+        reset_url = f"/static/reset-password.html?token={raw}"
+        if ENVIRONMENT == "development":
+            logger.info("[DEV] Reset URL for %s: %s", data.email, reset_url)
+        elif ENVIRONMENT != "testing":
+            try:
+                send_password_reset_email(data.email, reset_url)
+            except Exception:
+                logger.error("Failed to send password reset email for user %s", user.id)
+    bcrypt.checkpw(b"dummy", DUMMY_PASSWORD_HASH.encode("utf-8"))
+    return ForgotPasswordResponse(message=message)
+
+
+@router.post("/reset-password")
+def reset_password(data: ResetPasswordInput, db: Session = Depends(get_db)):
+    token_hash = hashlib.sha256(data.token.encode()).hexdigest()
+    reset = db.query(PasswordResetTokenDB).filter(
+        PasswordResetTokenDB.token_hash == token_hash,
+        PasswordResetTokenDB.used.is_(False),
+    ).first()
+
+    if not reset:
+        raise HTTPException(status_code=400, detail="Token inválido")
+    if reset.expires_at.replace(tzinfo=None) < datetime.now(timezone.utc).replace(tzinfo=None):
+        reset.used = True
+        db.commit()
+        raise HTTPException(status_code=400, detail="Token expirado")
+    if not data.new_password.strip() or len(data.new_password.strip()) < 6:
+        raise HTTPException(status_code=422, detail="Senha deve ter no mínimo 6 caracteres")
+
+    user = db.query(UserDB).filter(UserDB.id == reset.user_id).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Usuário não encontrado")
+
+    user.password_hash = hash_password(data.new_password.strip())
+    reset.used = True
+    db.commit()
+
+    logger.info("Senha redefinida user_id=%s", user.id)
+    return {"message": "Senha redefinida com sucesso."}
+
+
+@router.get("/dev/reset-url", include_in_schema=False)
+def dev_get_reset_url(
+    email: str,
+    user: UserDB = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if ENVIRONMENT == "production":
+        raise HTTPException(status_code=404, detail="Not found")
+    if user.role != "admin" and user.email != email:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    target = db.query(UserDB).filter(UserDB.email == email).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    raw = os.urandom(32).hex()
+    token_hash = hashlib.sha256(raw.encode()).hexdigest()
+    expires = datetime.now(timezone.utc) + timedelta(hours=PASSWORD_RESET_EXPIRE_HOURS)
+    reset = PasswordResetTokenDB(
+        user_id=target.id,
+        token_hash=token_hash,
+        expires_at=expires,
+    )
+    db.add(reset)
+    db.commit()
+    logger.info("[DEV] Reset token generated via dev endpoint for user %s", target.id)
+    return {"reset_url": f"/static/reset-password.html?token={raw}"}

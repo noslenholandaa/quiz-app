@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil — Quiz App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <div>
+                    <h1>Quiz App</h1>
+                    <p>Perfil do usuário</p>
+                </div>
+                <div id="user-area" class="user-area hidden">
+                    <span id="user-name" class="user-name"></span>
+                    <button id="theme-toggle" class="theme-btn" onclick="Theme.toggle()" aria-label="Alternar tema" title="Alternar tema"></button>
+                    <button class="logout-btn" onclick="logout()">Sair</button>
+                </div>
+            </div>
+        </header>
+        <main>
+
+        <nav class="nav-bar" aria-label="Navegação">
+            <a href="javascript:history.back()" class="nav-link">&larr; Voltar</a>
+        </nav>
+
+        <div id="profile-loading" class="loading">
+            <div class="spinner"></div>Carregando perfil...
+            <div style="margin-top:1rem;max-width:400px;margin-left:auto;margin-right:auto">
+                <div class="skeleton" style="height:72px;width:72px;border-radius:50%;margin:0 auto 16px"></div>
+                <div class="skeleton" style="height:20px;width:40%;margin:0 auto 8px"></div>
+                <div class="skeleton" style="height:14px;width:25%;margin:0 auto"></div>
+            </div>
+        </div>
+        <div id="profile-error" class="error hidden" role="alert"></div>
+
+        <div id="profile-content" class="hidden">
+            <div class="dash-section" style="text-align:center;padding:2rem;">
+                <div class="dash-welcome" style="justify-content:center;margin-bottom:1rem;">
+                    <div class="dash-welcome-avatar" id="profile-avatar" style="width:72px;height:72px;font-size:1.5rem;"></div>
+                    <div class="dash-welcome-info">
+                        <h2 class="dash-welcome-title" id="profile-name"></h2>
+                        <p class="dash-welcome-sub" id="profile-role"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-grid" id="profile-stats-grid">
+                <div class="dash-card"><div class="skeleton" style="height:32px;width:50%;margin:0 auto 8px"></div><div class="skeleton" style="height:14px;width:60%;margin:0 auto"></div></div>
+                <div class="dash-card"><div class="skeleton" style="height:32px;width:50%;margin:0 auto 8px"></div><div class="skeleton" style="height:14px;width:60%;margin:0 auto"></div></div>
+                <div class="dash-card"><div class="skeleton" style="height:32px;width:50%;margin:0 auto 8px"></div><div class="skeleton" style="height:14px;width:60%;margin:0 auto"></div></div>
+                <div class="dash-card"><div class="skeleton" style="height:32px;width:50%;margin:0 auto 8px"></div><div class="skeleton" style="height:14px;width:60%;margin:0 auto"></div></div>
+                <div class="dash-card"><div class="skeleton" style="height:32px;width:50%;margin:0 auto 8px"></div><div class="skeleton" style="height:14px;width:60%;margin:0 auto"></div></div>
+            </div>
+
+            <div class="dash-grid hidden" id="profile-stats-data">
+                <div class="dash-card">
+                    <div class="dash-card-bg"></div>
+                    <div class="dash-card-value" id="p-quizzes">0</div>
+                    <div class="dash-card-label">Quizzes criados</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-bg"></div>
+                    <div class="dash-card-value" id="p-submissions">0</div>
+                    <div class="dash-card-label">Submissões</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-bg"></div>
+                    <div class="dash-card-value" id="p-avg">0%</div>
+                    <div class="dash-card-label">Média</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-bg"></div>
+                    <div class="dash-card-value" id="p-best">0%</div>
+                    <div class="dash-card-label">Melhor resultado</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-bg"></div>
+                    <div class="dash-card-value" id="p-views">0</div>
+                    <div class="dash-card-label">Total de visualizações</div>
+                </div>
+            </div>
+        </div>
+
+            <div class="dash-section">
+                <div class="dash-section-header">
+                    <h3>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Quizzes criados
+                    </h3>
+                </div>
+                <div id="profile-quizzes" class="dash-empty">Nenhum quiz criado</div>
+            </div>
+
+            <div class="dash-section">
+                <div class="dash-section-header">
+                    <h3>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+                        Conquistas
+                    </h3>
+                </div>
+                <div id="profile-badges"></div>
+            </div>
+    </main>
+    </div>
+
+    <script src="theme.js"></script>
+    <script src="toast.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        function getInitials(name) {
+            return name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+        }
+
+        function renderBadges(badges) {
+            const el = document.getElementById('profile-badges');
+            if (!badges || badges.length === 0) {
+                el.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div><h3>Nenhuma conquista ainda</h3><p>Complete quizzes para ganhar conquistas.</p></div>';
+                return;
+            }
+            el.innerHTML = '<div class="badge-grid">' + badges.map(b => `
+                <div class="badge-card">
+                    <div class="badge-icon">${b.icon}</div>
+                    <div class="badge-name">${escapeHtml(b.name)}</div>
+                    <div class="badge-desc">${escapeHtml(b.description)}</div>
+                </div>
+            `).join('') + '</div>';
+        }
+
+        function renderProfileQuizzes(quizzes) {
+            const el = document.getElementById('profile-quizzes');
+            if (!quizzes || quizzes.length === 0) {
+                el.className = '';
+                el.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div><h3>Nenhum quiz criado</h3><p>Crie quizzes para aparecerem aqui.</p></div>';
+                return;
+            }
+            el.className = 'dash-recent-list';
+            el.innerHTML = quizzes.map((q, i) => `
+                <div class="dash-recent-item" style="animation-delay: ${i * 0.05}s">
+                    <div class="dash-recent-dot"></div>
+                    <div class="dash-recent-body">
+                        <span class="dr-title" title="${escapeHtml(q.title)}">${escapeHtml(q.title)}</span>
+                        <span class="dr-date">👁️ ${q.views || 0} visualizações</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadProfile() {
+            const params = new URLSearchParams(window.location.search);
+            let userId = params.get('user_id');
+            if (!userId) {
+                try {
+                    const user = await fetchMe();
+                    userId = user.id;
+                } catch (err) {
+                    document.getElementById('profile-loading').classList.add('hidden');
+                    document.getElementById('profile-error').textContent = handleApiError(err);
+                    document.getElementById('profile-error').classList.remove('hidden');
+                    return;
+                }
+            }
+
+            try {
+                const data = await apiGet(`/users/${userId}/profile`);
+                document.getElementById('profile-loading').classList.add('hidden');
+                document.getElementById('profile-content').classList.remove('hidden');
+                document.getElementById('profile-stats-grid').classList.add('hidden');
+                document.getElementById('profile-stats-data').classList.remove('hidden');
+
+                document.getElementById('profile-avatar').textContent = getInitials(data.name);
+                document.getElementById('profile-name').textContent = escapeHtml(data.name);
+                document.getElementById('profile-role').textContent = data.role === 'admin' ? '🛡️ Administrador' : '👤 Usuário';
+                document.getElementById('p-quizzes').textContent = data.quizzes_created;
+                document.getElementById('p-submissions').textContent = data.submissions;
+                document.getElementById('p-avg').textContent = data.average_score + '%';
+                document.getElementById('p-best').textContent = data.best_score + '%';
+                document.getElementById('p-views').textContent = data.total_views || 0;
+                if (data.ranking_position) {
+                    const rp = document.querySelector('.dash-card:last-child .dash-card-value');
+                    if (rp) rp.textContent = '#' + data.ranking_position;
+                }
+                renderBadges(data.badges);
+                renderProfileQuizzes(data.quizzes);
+            } catch (err) {
+                document.getElementById('profile-loading').classList.add('hidden');
+                document.getElementById('profile-error').textContent = handleApiError(err);
+                document.getElementById('profile-error').classList.remove('hidden');
+                Toast.error(handleApiError(err));
+            }
+        }
+
+        async function loadUser() {
+            try {
+                const user = await fetchMe();
+                document.getElementById('user-name').textContent = user.name;
+                document.getElementById('user-area').classList.remove('hidden');
+            } catch (err) {
+                if (err.status === 401) { logout(); }
+                else { Toast.error(handleApiError(err)); logout(); }
+            }
+        }
+
+        if (isAuthenticated()) { loadUser(); }
+        loadProfile();
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, JSON, Text, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, JSON, Text, Boolean, Index, Table
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 from config import DATABASE_URL
@@ -16,6 +16,9 @@ Base = declarative_base()
 
 class UserDB(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        Index("ix_users_role", "role"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
@@ -34,12 +37,41 @@ class SubmissionDB(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    quiz_id = Column(Integer, nullable=False)
+    quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
     quiz_title = Column(String, nullable=False)
     answers = Column(JSON, nullable=False)
+    score = Column(Integer, default=0)
+    max_score = Column(Integer, default=0)
+    percentage = Column(Integer, default=0)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     owner = relationship("UserDB", back_populates="submissions")
+
+    __table_args__ = (
+        Index("ix_submissions_user_id", "user_id"),
+        Index("ix_submissions_quiz_id", "quiz_id"),
+        Index("ix_submissions_created_at", "created_at"),
+        Index("ix_submissions_percentage", "percentage"),
+    )
+
+
+class CategoryDB(Base):
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    slug = Column(String, unique=True, nullable=False, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    quizzes = relationship("QuizDB", back_populates="category")
+
+
+class TagDB(Base):
+    __tablename__ = "tags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class QuizDB(Base):
@@ -47,13 +79,33 @@ class QuizDB(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     title = Column(String, nullable=False)
     description = Column(String, default="")
     questions = Column(JSON, nullable=False)
+    views = Column(Integer, default=0)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     creator = relationship("UserDB", back_populates="quizzes")
+    category = relationship("CategoryDB", back_populates="quizzes")
+
+    __table_args__ = (
+        Index("ix_quizzes_title", "title"),
+        Index("ix_quizzes_category_id", "category_id"),
+        Index("ix_quizzes_views", "views"),
+        Index("ix_quizzes_created_at", "created_at"),
+    )
+
+
+quiz_tags = Table(
+    "quiz_tags", Base.metadata,
+    Column("quiz_id", Integer, ForeignKey("quizzes.id"), primary_key=True),
+    Column("tag_id", Integer, ForeignKey("tags.id"), primary_key=True),
+)
+
+QuizDB.tags = relationship("TagDB", secondary=quiz_tags, back_populates="quizzes")
+TagDB.quizzes = relationship("QuizDB", secondary=quiz_tags, back_populates="tags")
 
 
 class RefreshTokenDB(Base):
@@ -70,6 +122,25 @@ class RefreshTokenDB(Base):
     last_used_at = Column(DateTime, nullable=True)
 
     owner = relationship("UserDB", back_populates="refresh_tokens")
+
+    __table_args__ = (
+        Index("ix_refresh_tokens_expires_at", "expires_at"),
+    )
+
+
+class PasswordResetTokenDB(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token_hash = Column(String, unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        Index("ix_password_reset_tokens_expires_at", "expires_at"),
+    )
 
 
 def create_db():

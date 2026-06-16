@@ -9,15 +9,23 @@
 <body>
     <div class="container">
         <header>
-            <h1>Quiz App</h1>
-            <p>Crie sua conta para começar</p>
+            <div class="header-top">
+                <div>
+                    <h1>Quiz App</h1>
+                    <p>Crie sua conta para começar</p>
+                </div>
+                <div class="user-area">
+                    <button id="theme-toggle" class="theme-btn" onclick="Theme.toggle()" aria-label="Alternar tema" title="Alternar tema"></button>
+                </div>
+            </div>
         </header>
+        <main>
 
         <div class="auth-card">
             <h2>Cadastro</h2>
 
-            <div id="register-error" class="auth-msg auth-error hidden"></div>
-            <div id="register-success" class="auth-msg auth-success hidden"></div>
+            <div id="register-error" class="auth-msg auth-error hidden" role="alert"></div>
+            <div id="register-success" class="auth-msg auth-success hidden" role="alert"></div>
 
             <form id="register-form" onsubmit="handleRegister(event)">
                 <div class="auth-field">
@@ -47,8 +55,11 @@
                 Já tem conta? <a href="/static/login.html">Fazer login</a>
             </p>
         </div>
+    </main>
     </div>
 
+    <script src="theme.js"></script>
+    <script src="toast.js"></script>
     <script src="auth.js"></script>
     <script>
         redirectIfAuth();
@@ -88,10 +99,11 @@
                 successEl.classList.remove('hidden');
                 setTimeout(() => { window.location.href = '/static/index.html'; }, 1000);
             } catch (err) {
-                errorEl.textContent = err.message;
+                errorEl.textContent = handleApiError(err);
                 errorEl.classList.remove('hidden');
                 btn.disabled = false;
                 btn.textContent = 'Criar conta';
+                Toast.error(handleApiError(err));
             }
         }
     </script>

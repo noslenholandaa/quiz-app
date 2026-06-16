@@ -84,11 +84,11 @@ def test_update_quiz_own(client, auth_headers, created_quiz):
     assert resp.json()["title"] == "Updated Title"
 
 
-def test_update_quiz_other(client, auth_headers, auth_headers_b, created_quiz):
+def test_update_quiz_other_admin_forbidden(client, auth_headers, auth_headers_b, created_quiz):
     resp = client.put(f"/quizzes/{created_quiz['id']}", json={
         "title": "Hacked",
     }, headers=auth_headers_b)
-    assert resp.status_code == 200
+    assert resp.status_code == 403
 
 
 def test_update_quiz_seed(client, auth_headers):
@@ -105,6 +105,11 @@ def test_update_quiz_empty_title(client, auth_headers, created_quiz):
     assert resp.status_code == 400
 
 
+def test_update_quiz_not_found(client, auth_headers):
+    resp = client.put("/quizzes/99999", json={"title": "Nope"}, headers=auth_headers)
+    assert resp.status_code == 404
+
+
 def test_delete_quiz_own(client, auth_headers, created_quiz):
     resp = client.delete(f"/quizzes/{created_quiz['id']}", headers=auth_headers)
     assert resp.status_code == 204
@@ -112,9 +117,9 @@ def test_delete_quiz_own(client, auth_headers, created_quiz):
     assert resp.status_code == 404
 
 
-def test_delete_quiz_other(client, auth_headers, auth_headers_b, created_quiz):
+def test_delete_quiz_other_admin_forbidden(client, auth_headers, auth_headers_b, created_quiz):
     resp = client.delete(f"/quizzes/{created_quiz['id']}", headers=auth_headers_b)
-    assert resp.status_code == 204
+    assert resp.status_code == 403
 
 
 def test_delete_quiz_seed(client, auth_headers):

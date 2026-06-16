@@ -72,8 +72,9 @@ def test_list_submissions(client, auth_headers):
     resp = client.get("/me/submissions", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
-    assert len(data) == 1
-    assert data[0]["quiz_id"] == 1
+    assert data["total"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["quiz_id"] == 1
 
 
 def test_submissions_isolation(client, auth_headers, auth_headers_b):
@@ -87,4 +88,4 @@ def test_submissions_isolation(client, auth_headers, auth_headers_b):
     }, headers=auth_headers)
     resp = client.get("/me/submissions", headers=auth_headers_b)
     assert resp.status_code == 200
-    assert len(resp.json()) == 0
+    assert resp.json()["total"] == 0

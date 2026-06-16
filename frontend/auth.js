@@ -103,6 +103,30 @@ async function apiDelete(path) {
     }
 }
 
+function handleApiError(err) {
+    const messages = {
+        400: 'Dados inválidos. Verifique as informações e tente novamente.',
+        401: 'Sessão expirada. Faça login novamente.',
+        403: 'Acesso negado. Você não tem permissão para esta ação.',
+        404: 'Recurso não encontrado.',
+        422: 'Dados inválidos. Verifique os campos e tente novamente.',
+        429: 'Muitas requisições. Aguarde alguns segundos e tente novamente.',
+        500: 'Erro interno do servidor. Tente novamente mais tarde.',
+        502: 'Servidor temporariamente indisponível. Tente novamente mais tarde.',
+        503: 'Serviço indisponível no momento. Tente novamente mais tarde.',
+    };
+    if (err.status && messages[err.status]) {
+        return messages[err.status];
+    }
+    if (err.message === 'Failed to fetch' || err.message === 'NetworkError') {
+        return 'Erro de conexão. Verifique sua internet e tente novamente.';
+    }
+    if (err.message?.includes('timeout') || err.message?.includes('timed out')) {
+        return 'A requisição excedeu o tempo limite. Tente novamente.';
+    }
+    return err.message || 'Erro desconhecido. Tente novamente.';
+}
+
 async function loginUser(email, password) {
     const data = await apiPost('/auth/login', { email, password });
     saveToken(data.access_token, data.refresh_token);
@@ -119,7 +143,18 @@ async function fetchMe() {
     return apiGet('/auth/me');
 }
 
-function logout() {
+async function logout() {
+    const rt = getRefreshToken();
+    try {
+        if (rt) {
+            await fetch(`${AUTH_API}/auth/logout`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh_token: rt }),
+            });
+        }
+    } catch {
+    }
     removeTokens();
     window.location.href = '/static/login.html';
 }

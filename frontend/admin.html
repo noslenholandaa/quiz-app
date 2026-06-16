@@ -16,18 +16,27 @@
                 </div>
                 <div id="user-area" class="user-area hidden">
                     <span id="user-name" class="user-name"></span>
+                    <button id="theme-toggle" class="theme-btn" onclick="Theme.toggle()" aria-label="Alternar tema" title="Alternar tema"></button>
                     <span class="admin-badge-static">Admin</span>
                     <button class="logout-btn" onclick="logout()">Sair</button>
                 </div>
             </div>
         </header>
+        <main>
 
-        <div class="nav-bar">
+        <nav class="nav-bar" aria-label="Navegação">
             <a href="/static/dashboard.html" class="nav-link">&larr; Dashboard</a>
-        </div>
+        </nav>
 
-        <div id="admin-loading" class="loading">Carregando painel...</div>
-        <div id="admin-error" class="error hidden"></div>
+        <div id="admin-loading" class="loading">
+            <div class="spinner"></div>Carregando painel...
+            <div style="margin-top:1rem;max-width:500px;margin-left:auto;margin-right:auto">
+                <div class="skeleton" style="height:60px;margin-bottom:8px;border-radius:10px"></div>
+                <div class="skeleton" style="height:60px;margin-bottom:8px;border-radius:10px"></div>
+                <div class="skeleton" style="height:60px;border-radius:10px"></div>
+            </div>
+        </div>
+        <div id="admin-error" class="error hidden" role="alert"></div>
 
         <div id="admin-content" class="hidden">
             <div class="admin-stats-row">
@@ -52,8 +61,11 @@
                 <div id="admin-users-list"></div>
             </div>
         </div>
+    </main>
     </div>
 
+    <script src="theme.js"></script>
+    <script src="toast.js"></script>
     <script src="auth.js"></script>
     <script>
         function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
@@ -61,7 +73,7 @@
         function renderUsers(users) {
             const el = document.getElementById('admin-users-list');
             if (!users || users.length === 0) {
-                el.innerHTML = '<div class="dash-empty">Nenhum usuário encontrado</div>';
+                el.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><h3>Nenhum usuário</h3><p>Nenhum usuário encontrado com esse filtro.</p></div>';
                 return;
             }
             el.innerHTML = `
@@ -69,13 +81,13 @@
                     <table class="admin-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Nome</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Quizzes</th>
-                                <th>Submissões</th>
-                                <th>Criado em</th>
+                                <th scope="col">ID</th>
+                                <th scope="col">Nome</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Role</th>
+                                <th scope="col">Quizzes</th>
+                                <th scope="col">Submissões</th>
+                                <th scope="col">Criado em</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -113,12 +125,9 @@
                 renderUsers(data.users);
             } catch (err) {
                 document.getElementById('admin-loading').classList.add('hidden');
-                if (err.message.includes('403') || err.message.includes('não autorizado')) {
-                    document.getElementById('admin-error').textContent = 'Acesso restrito. Você não é administrador.';
-                } else {
-                    document.getElementById('admin-error').textContent = 'Erro: ' + err.message;
-                }
+                document.getElementById('admin-error').textContent = handleApiError(err);
                 document.getElementById('admin-error').classList.remove('hidden');
+                Toast.error(handleApiError(err));
             }
         }
 
@@ -134,7 +143,10 @@
                     return;
                 }
                 loadAdmin();
-            } catch { logout(); }
+            } catch (err) {
+                if (err.status === 401) { logout(); }
+                else { Toast.error(handleApiError(err)); logout(); }
+            }
         }
 
         redirectIfNotAuth();

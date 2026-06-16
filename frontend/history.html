@@ -16,36 +16,54 @@
                 </div>
                 <div id="user-area" class="user-area hidden">
                     <span id="user-name" class="user-name"></span>
+                    <button id="theme-toggle" class="theme-btn" onclick="Theme.toggle()" aria-label="Alternar tema" title="Alternar tema"></button>
+                    <a href="/static/dashboard.html" class="history-link">Dashboard</a>
                     <button class="logout-btn" onclick="logout()">Sair</button>
                 </div>
             </div>
         </header>
+        <main>
 
-        <div id="nav-bar" class="nav-bar">
-            <a href="/static/index.html" class="nav-link">&larr; Voltar para quizzes</a>
+        <nav class="nav-bar" aria-label="Navegação">
+            <a href="/static/index.html" class="nav-link">&larr; Voltar</a>
+        </nav>
+
+        <div id="history-loading" class="loading">
+            <div class="spinner"></div>Carregando histórico...
+            <div style="margin-top:1rem;max-width:500px;margin-left:auto;margin-right:auto">
+                <div class="skeleton" style="height:20px;width:60%;margin:0 auto 20px"></div>
+                <div class="skeleton" style="height:60px;margin-bottom:8px;border-radius:10px"></div>
+                <div class="skeleton" style="height:60px;margin-bottom:8px;border-radius:10px"></div>
+                <div class="skeleton" style="height:60px;border-radius:10px"></div>
+            </div>
         </div>
-
-        <div id="history-loading" class="loading">Carregando histórico...</div>
 
         <div id="history-empty" class="empty-state hidden">
-            <div class="empty-icon">📋</div>
-            <h3>Nenhum formulário respondido</h3>
-            <p>Você ainda não preencheu nenhum formulário.</p>
-            <a href="/static/index.html" class="submit-btn" style="display:inline-block;width:auto;padding:0.75rem 2rem;text-decoration:none;margin-top:1rem">Ver formulários disponíveis</a>
+            <div class="empty-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+            </div>
+            <h3>Nenhum resultado ainda</h3>
+            <p>Após responder quizzes, suas submissões aparecerão aqui.</p>
+            <a href="/static/index.html" class="dash-empty-cta">Responder quizzes</a>
         </div>
 
-        <div id="history-error" class="error hidden"></div>
+        <div id="history-error" class="error hidden" role="alert"></div>
 
         <div id="history-list" class="history-list hidden"></div>
+    </main>
     </div>
 
-    <div id="detail-modal" class="modal-overlay hidden" onclick="closeDetail(event)">
+    <div id="detail-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" onclick="closeDetail(event)">
         <div class="modal-content">
             <button class="modal-close" onclick="closeDetail()">&times;</button>
             <div id="detail-body"></div>
         </div>
     </div>
 
+    <script src="theme.js"></script>
+    <script src="toast.js"></script>
     <script src="auth.js"></script>
     <script>
         let submissions = [];
@@ -92,11 +110,8 @@
                         <div class="detail-answer">
                             <div class="da-question">${escapeHtml(a.question_text)}</div>
                             <div class="da-answer">${formatAnswer(a.answer)}</div>
-                        </div>
-                    `).join('')}
-                </div>
             `;
-            document.getElementById('detail-modal').classList.remove('hidden');
+                            document.getElementById('detail-modal').classList.remove('hidden');
         }
 
         function closeDetail(event) {
@@ -129,8 +144,9 @@
             } catch (err) {
                 document.getElementById('history-loading').classList.add('hidden');
                 const errEl = document.getElementById('history-error');
-                errEl.textContent = 'Erro ao carregar histórico: ' + err.message;
+                errEl.textContent = handleApiError(err);
                 errEl.classList.remove('hidden');
+                Toast.error(handleApiError(err));
             }
         }
 
@@ -139,8 +155,9 @@
                 const user = await fetchMe();
                 document.getElementById('user-name').textContent = user.name;
                 document.getElementById('user-area').classList.remove('hidden');
-            } catch {
-                logout();
+            } catch (err) {
+                if (err.status === 401) { logout(); }
+                else { Toast.error(handleApiError(err)); logout(); }
             }
         }
 

@@ -1,0 +1,46 @@
+services:
+
+  postgres:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: quizapp
+      POSTGRES_USER: quizapp
+      POSTGRES_PASSWORD: quizapp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quizapp -d quizapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  app:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql://quizapp:quizapp@postgres:5432/quizapp
+      SECRET_KEY: change-me
+      REFRESH_SECRET_KEY: change-me-too
+      CORS_ORIGINS: http://localhost:8000
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: admin123
+      ADMIN_EMAILS: admin@example.com
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  postgres_data:

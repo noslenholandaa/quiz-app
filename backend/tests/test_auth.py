@@ -114,3 +114,10 @@ def test_me_no_token(client):
 def test_me_invalid_token(client):
     resp = client.get("/auth/me", headers={"Authorization": "Bearer invalidtoken123"})
     assert resp.status_code == 401
+
+
+def test_verify_password_direct(client):
+    from auth import hash_password, verify_password
+    h = hash_password("TestPass123!")
+    assert verify_password("TestPass123!", h)
+    assert not verify_password("WrongPass!", h)
