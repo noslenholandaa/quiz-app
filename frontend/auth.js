@@ -324,11 +324,5 @@ function getGradeLabel(perc) {
     return { icon: '\u{1F4DA}', label: 'Continue Praticando' };
 }
 
-/* Self-check: ensure critical functions are defined */
-if (typeof initLayout !== 'function') {
-    console.error('CRITICAL: initLayout não definido. auth.js pode estar desatualizado ou não foi carregado.');
-    /* Define fallback to prevent ReferenceError in pages */
-    window.initLayout = function() {
-        console.warn('initLayout fallback: auth.js não foi carregado corretamente.');
-    };
-}
+/* Ensure window.initLayout is always set (guarda contra cache de versão antiga) */
+window.initLayout = window.initLayout || function() {};
