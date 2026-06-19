@@ -177,10 +177,6 @@ function showResult(result) {
     const incorrectCount = result.answers.length - correctCount;
     const perc = result.percentage || Math.round((result.score / result.max_score) * 100) || 0;
     const badge = getGradeLabel(perc);
-    console.debug('[Result Debug] Summary: correct=%d incorrect=%d percentage=%d badge="%s %s"',
-        correctCount, incorrectCount, perc, badge.icon, badge.label);
-    const debugEl = document.getElementById('result-debug-panel');
-    if (debugEl) debugEl.textContent = JSON.stringify(result, null, 2);
 
     document.getElementById('result-title').textContent = result.quiz_title;
     document.getElementById('result-badge').className = `badge ${getGradeClass(perc)}`;
