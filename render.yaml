@@ -25,6 +25,20 @@ services:
         value: "15"
       - key: REFRESH_TOKEN_EXPIRE_DAYS
         value: "7"
+      - key: SMTP_HOST
+        value: ""  # LEGACY (não utilizado — modo demo)
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        value: ""  # LEGACY
+      - key: SMTP_PASSWORD
+        value: ""  # LEGACY
+      - key: SMTP_FROM
+        value: "noreply@quizapp.com"
+      - key: SMTP_USE_TLS
+        value: "true"
+      - key: FRONTEND_URL
+        value: "https://quiz-app.onrender.com"
 
 databases:
   - name: quiz-db

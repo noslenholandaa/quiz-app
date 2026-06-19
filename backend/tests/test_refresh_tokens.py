@@ -63,10 +63,11 @@ def test_expired_refresh_token(client, test_user, db_session):
     from database import RefreshTokenDB, UserDB
     from datetime import datetime, timezone, timedelta
     import hashlib
+    from app.core.config import REFRESH_SECRET_KEY
 
     user = db_session.query(UserDB).filter(UserDB.email == "test@example.com").first()
     raw = "expiredtoken123"
-    token_hash = hashlib.sha256(raw.encode()).hexdigest()
+    token_hash = hashlib.sha256((raw + REFRESH_SECRET_KEY).encode()).hexdigest()
     expired = RefreshTokenDB(
         user_id=user.id,
         token_hash=token_hash,

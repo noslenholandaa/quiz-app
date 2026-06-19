@@ -4,113 +4,96 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard — Quiz App</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20260619">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="header-top">
-                <div>
-                    <h1>Quiz App</h1>
-                    <p>Dashboard e estatísticas</p>
-                </div>
-                <div id="user-area" class="user-area hidden">
-                    <span id="user-name" class="user-name"></span>
-                    <button id="theme-toggle" class="theme-btn" onclick="Theme.toggle()" aria-label="Alternar tema" title="Alternar tema"></button>
-                    <button class="logout-btn" onclick="logout()">Sair</button>
-                </div>
-            </div>
-        </header>
-        <main>
-
-        <nav class="nav-bar" aria-label="Navegação">
-            <a href="/static/index.html" class="nav-link">&larr; Voltar</a>
-            <a href="/static/leaderboard.html" class="nav-link" style="margin-left:1rem;">🏆 Ranking</a>
-        </nav>
-
-        <div id="dash-loading" class="loading">
-            <div class="spinner"></div>
-            Carregando dashboard...
-            <div style="margin-top:1rem;max-width:500px;margin-left:auto;margin-right:auto">
-                <div class="skeleton" style="height:20px;width:50%;margin:0 auto 12px"></div>
-                <div class="skeleton" style="height:14px;width:70%;margin:0 auto"></div>
-            </div>
+    <div class="app-layout">
+        <div class="main-area">
+            <div class="content content-wide">
+        <div id="dash-loading" style="text-align:center;padding:48px">
+            <div class="skeleton" style="height:24px;width:200px;margin:0 auto 12px"></div>
+            <div class="skeleton" style="height:14px;width:300px;margin:0 auto"></div>
         </div>
-        <div id="dash-error" class="error hidden" role="alert"></div>
+        <div id="dash-error" class="hidden" role="alert"></div>
 
         <div id="dash-content" class="hidden">
-            <div class="dash-welcome hidden" id="dash-welcome">
-                <div class="dash-welcome-avatar" id="dash-avatar"></div>
-                <div class="dash-welcome-info">
-                    <h2 class="dash-welcome-title">Olá, <span id="dash-user-name"></span></h2>
-                    <p class="dash-welcome-sub">Aqui está o resumo da sua atividade</p>
-                </div>
-                <div id="admin-badge" class="admin-badge hidden" onclick="location.href='/static/admin.html'">🛡️ Admin</div>
-            </div>
-
-            <div class="dash-insight hidden" id="dash-insight"></div>
-
             <div class="dash-grid" id="dash-cards">
-                <div class="dash-card" style="--accent: #667eea"><div class="skeleton" style="height:24px;width:70%;margin:0 auto 12px"></div><div class="skeleton" style="height:32px;width:40%;margin:0 auto"></div></div>
-                <div class="dash-card" style="--accent: #f093fb"><div class="skeleton" style="height:24px;width:70%;margin:0 auto 12px"></div><div class="skeleton" style="height:32px;width:40%;margin:0 auto"></div></div>
-                <div class="dash-card" style="--accent: #4facfe"><div class="skeleton" style="height:24px;width:70%;margin:0 auto 12px"></div><div class="skeleton" style="height:32px;width:40%;margin:0 auto"></div></div>
-                <div class="dash-card" style="--accent: #43e97b"><div class="skeleton" style="height:24px;width:70%;margin:0 auto 12px"></div><div class="skeleton" style="height:32px;width:40%;margin:0 auto"></div></div>
+                <div class="dash-card"><div class="skeleton" style="height:24px;width:70%;margin:0 auto 12px"></div><div class="skeleton" style="height:32px;width:40%;margin:0 auto"></div></div>
+                <div class="dash-card"><div class="skeleton" style="height:24px;width:70%;margin:0 auto 12px"></div><div class="skeleton" style="height:32px;width:40%;margin:0 auto"></div></div>
+                <div class="dash-card"><div class="skeleton" style="height:24px;width:70%;margin:0 auto 12px"></div><div class="skeleton" style="height:32px;width:40%;margin:0 auto"></div></div>
+                <div class="dash-card"><div class="skeleton" style="height:24px;width:70%;margin:0 auto 12px"></div><div class="skeleton" style="height:32px;width:40%;margin:0 auto"></div></div>
             </div>
 
-            <div class="dash-charts-row">
-
-                <div class="dash-section dash-section-half">
+            <div class="dash-row">
+                <div class="dash-section">
                     <div class="dash-section-header">
                         <h3>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                             Quiz mais visto
                         </h3>
                     </div>
-                    <div id="most-viewed-quiz" class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div><h3>Nenhum quiz criado</h3></div>
+                    <div id="most-viewed-quiz"><div class="empty-state"><div class="empty-state-icon">📊</div><h3>Nenhum quiz criado</h3></div></div>
                 </div>
 
                 <div class="dash-chart-card">
                     <div class="dash-chart-header">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
                         Engajamento
-                        <span class="chart-total-badge" id="engagement-total">0</span>
+                        <span class="badge badge-primary" id="engagement-total" style="margin-left:auto">0</span>
                     </div>
                     <div class="dash-chart-body">
-                        <div class="dash-chart-container">
-                            <canvas id="chart-engagement"></canvas>
-                        </div>
-                        <div class="dash-chart-legend" id="legend-engagement"></div>
+                        <div class="dash-chart-container"><canvas id="chart-engagement"></canvas></div>
+                        <div class="chart-legend" id="legend-engagement"></div>
                     </div>
                 </div>
+            </div>
+
+            <div class="dash-charts-row" style="grid-template-columns:1fr 1fr">
                 <div class="dash-chart-card">
                     <div class="dash-chart-header">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                         Atividade por período
                     </div>
-                    <div class="dash-chart-body">
-                        <div class="dash-chart-container-bar">
-                            <canvas id="chart-periods"></canvas>
+                    <div class="dash-chart-body" style="padding:8px 0">
+                        <canvas id="chart-periods" style="max-height:200px"></canvas>
+                    </div>
+                </div>
+
+                <div class="dash-chart-card">
+                    <div class="dash-chart-header">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Estatísticas por período
+                    </div>
+                    <div class="dash-stats" style="padding:8px 0">
+                        <div class="stat-period">
+                            <div class="stat-period-title">Últimos 7 dias</div>
+                            <div class="stat-row"><span>Submissões</span><strong id="s7-s">0</strong></div>
+                            <div class="stat-row"><span>Quizzes</span><strong id="s7-q">0</strong></div>
+                        </div>
+                        <div class="stat-period">
+                            <div class="stat-period-title">Últimos 30 dias</div>
+                            <div class="stat-row"><span>Submissões</span><strong id="s30-s">0</strong></div>
+                            <div class="stat-row"><span>Quizzes</span><strong id="s30-q">0</strong></div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="dash-row">
-                <div class="dash-section dash-section-half">
+                <div class="dash-section">
                     <div class="dash-section-header">
                         <h3>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                             Últimos quizzes
                         </h3>
                     </div>
                     <div id="recent-quizzes" class="dash-empty">Nenhum quiz criado ainda</div>
                 </div>
-
-                <div class="dash-section dash-section-half">
+                <div class="dash-section">
                     <div class="dash-section-header">
                         <h3>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                             Últimas submissões
                         </h3>
                     </div>
@@ -118,12 +101,14 @@
                 </div>
             </div>
         </div>
-    </main>
+            </div>
+        </div>
     </div>
-
-    <script src="theme.js"></script>
-    <script src="toast.js"></script>
-    <script src="auth.js"></script>
+    <div id="toast-container"></div>
+    <div class="sidebar-overlay" onclick="toggleMobileMenu()"></div>
+    <script src="theme.js?v=20260619"></script>
+    <script src="toast.js?v=20260619"></script>
+    <script src="auth.js?v=20260619"></script>
     <script>
         let chartEngagement = null;
         let chartPeriods = null;
@@ -143,335 +128,121 @@
             return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
         }
 
-        function getInitials(name) {
-            return name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
-        }
-
         const CARD_CONFIG = [
-            { label: 'Quizzes criados', key: 'total_quizzes_created', icon: 'M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z', color: '#667eea', bg: 'rgba(102,126,234,0.08)' },
-            { label: 'Quizzes respondidos', key: 'total_quizzes_responded', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: '#f093fb', bg: 'rgba(240,147,251,0.08)' },
-            { label: 'Total de submissões', key: 'total_submissions', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', color: '#4facfe', bg: 'rgba(79,172,254,0.08)' },
-            { label: 'Respostas enviadas', key: 'total_answers_submitted', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z', color: '#43e97b', bg: 'rgba(67,233,123,0.08)' },
-            { label: 'Melhor pontuação', key: 'best_percentage', suffix: '%', icon: 'M12 1a3 3 0 0 0-3 3v3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-8a3 3 0 0 0-3-3h-3V4a3 3 0 0 0-3-3z', color: '#f6d365', bg: 'rgba(246,211,101,0.08)' },
-            { label: 'Média geral', key: 'average_percentage', suffix: '%', icon: 'M22 12h-4l-3 9L9 3l-3 9H2', color: '#38b2ac', bg: 'rgba(56,178,172,0.08)' },
-            { label: 'Posição no ranking', key: 'ranking_position', prefix: '#', icon: 'M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7m10 2h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7M4 22h16M10 22V8h4v14', color: '#fc8181', bg: 'rgba(252,129,129,0.08)' },
-            { label: 'Total de visualizações', key: 'total_views', icon: 'M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24', color: '#4fd1c5', bg: 'rgba(79,209,197,0.08)' },
+            { label: 'Quizzes criados', key: 'total_quizzes_created', icon: 'M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z', cls: 'primary' },
+            { label: 'Quizzes respondidos', key: 'total_quizzes_responded', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', cls: 'success' },
+            { label: 'Total de submissões', key: 'total_submissions', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', cls: 'warning' },
+            { label: 'Melhor pontuação', key: 'best_percentage', suffix: '%', icon: 'M12 1a3 3 0 0 0-3 3v3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-8a3 3 0 0 0-3-3h-3V4a3 3 0 0 0-3-3z', cls: 'danger' },
+            { label: 'Média geral', key: 'average_percentage', suffix: '%', icon: 'M22 12h-4l-3 9L9 3l-3 9H2', cls: 'primary' },
+            { label: 'Posição no ranking', key: 'ranking_position', prefix: '#', icon: 'M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7m10 2h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7M4 22h16M10 22V8h4v14', cls: 'success' },
+            { label: 'Total de visualizações', key: 'total_views', icon: 'M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24', cls: 'warning' },
         ];
 
         function renderCards(dash) {
             const container = document.getElementById('dash-cards');
-            container.innerHTML = CARD_CONFIG.map(c => {
+            container.innerHTML = CARD_CONFIG.slice(0, 4).map(c => {
                 let val = dash[c.key] ?? 0;
                 if (c.prefix) val = c.prefix + val;
                 if (c.suffix) val = val + c.suffix;
-                return `
-                    <div class="dash-card" style="--accent: ${c.color}; --bg: ${c.bg}">
-                        <div class="dash-card-bg"></div>
-                        <div class="dash-card-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${c.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${c.icon}"/></svg>
-                        </div>
-                        <div class="dash-card-value">${val}</div>
-                        <div class="dash-card-label">${c.label}</div>
+                return `<div class="dash-card">
+                    <div class="dash-card-icon ${c.cls}">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${c.icon}"/></svg>
                     </div>
-                `;
+                    <div class="dash-card-value">${val}</div>
+                    <div class="dash-card-label">${c.label}</div>
+                </div>`;
             }).join('');
-            renderMostViewed(dash.most_viewed_quiz);
-        }
-
-        function renderMostViewed(mv) {
-            const el = document.getElementById('most-viewed-quiz');
-            if (!mv) {
-                el.className = '';
-                el.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div><h3>Nenhum quiz criado</h3></div>';
-                return;
-            }
-            el.className = '';
-            el.innerHTML = `
-                <div class="mv-quiz-card">
-                    <div class="mv-quiz-title">${escapeHtml(mv.title)}</div>
-                    <div class="mv-quiz-stats">
-                        <span class="mv-quiz-stat">👁️ ${mv.views} visualizações</span>
-                    </div>
-                    <a href="/static/index.html?quiz_id=${mv.id}" class="mv-quiz-link">Ver quiz &rarr;</a>
-                </div>
-            `;
-        }
-
-        function renderInsight(dash) {
-            const el = document.getElementById('dash-insight');
-            const q = dash.total_quizzes_created, r = dash.total_quizzes_responded;
-            const s = dash.total_submissions, a = dash.total_answers_submitted;
-            if (q === 0 && s === 0) { el.classList.add('hidden'); return; }
-            el.classList.remove('hidden');
-            const avgAns = s > 0 ? (a / s).toFixed(1) : '0';
-            const pct = q > 0 ? Math.round((r / q) * 100) : 0;
-            const parts = [];
-            if (q > 0) parts.push(`<strong>${q}</strong> ${q === 1 ? 'quiz criado' : 'quizzes criados'}`);
-            if (s > 0) parts.push(`<strong>${s}</strong> ${s === 1 ? 'submissão' : 'submissões'}`);
-            if (a > 0) parts.push(`<strong>${a}</strong> ${a === 1 ? 'resposta' : 'respostas'} enviadas`);
-            let html = `<div class="dash-insight-icon">💡</div><div>Você tem `;
-            if (parts.length === 1) html += parts[0];
-            else if (parts.length === 2) html += `${parts[0]} e ${parts[1]}`;
-            else html += `${parts[0]}, ${parts[1]} e ${parts[2]}`;
-            html += '.';
-            if (s > 0) html += ` Média de <strong>${avgAns}</strong> ${avgAns === '1' ? 'resposta' : 'respostas'} por submissão.`;
-            if (q > 0 && r > 0) html += ` <strong>${pct}%</strong> dos quizzes criados foram respondidos.`;
-            el.innerHTML = html + '</div>';
         }
 
         function buildGradient(ctx, c1, c2) {
             const g = ctx.createLinearGradient(0, 0, 0, 300);
-            g.addColorStop(0, c1);
-            g.addColorStop(1, c2);
-            return g;
+            g.addColorStop(0, c1); g.addColorStop(1, c2); return g;
         }
 
-        function cssVar(name, fallback = '') {
-            return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-        }
-
-        function isDarkMode() {
-            return document.documentElement.classList.contains('dark');
-        }
-
-        function chartTextColor() {
-            return isDarkMode() ? '#a0aec0' : '#4a5568';
-        }
-
-        function chartTickColor() {
-            return isDarkMode() ? '#4a5568' : '#a0aec0';
-        }
-
-        function chartGridColor() {
-            return isDarkMode() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
-        }
+        function isDarkMode() { return document.documentElement.classList.contains('dark'); }
+        function chartTextColor() { return isDarkMode() ? '#94a3b8' : '#475569'; }
+        function chartTickColor() { return isDarkMode() ? '#475569' : '#94a3b8'; }
+        function chartGridColor() { return isDarkMode() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'; }
 
         function renderCharts(dash, stats) {
             if (typeof Chart === 'undefined') return;
             if (chartEngagement) chartEngagement.destroy();
             if (chartPeriods) chartPeriods.destroy();
 
-            const total = dash.total_quizzes_created + dash.total_quizzes_responded;
-            document.getElementById('engagement-total').textContent = total;
-            const pctCriados = total > 0 ? Math.round((dash.total_quizzes_created / total) * 100) : 0;
-            const pctRespondidos = total > 0 ? Math.round((dash.total_quizzes_responded / total) * 100) : 0;
+            document.getElementById('engagement-total').textContent = dash.total_quizzes_created + dash.total_quizzes_responded;
 
             const engCtx = document.getElementById('chart-engagement').getContext('2d');
-            const engGrad1 = buildGradient(engCtx, '#667eea', '#764ba2');
-            const engGrad2 = buildGradient(engCtx, '#f093fb', '#f5576c');
-
             chartEngagement = new Chart(engCtx, {
                 type: 'doughnut',
                 data: {
                     labels: ['Criados', 'Respondidos'],
-                    datasets: [{
-                        data: [dash.total_quizzes_created || 1, dash.total_quizzes_responded || 0],
-                        backgroundColor: [engGrad1, engGrad2],
-                        borderWidth: 0,
-                        hoverOffset: 12,
-                    }]
+                    datasets: [{ data: [dash.total_quizzes_created || 1, dash.total_quizzes_responded || 0], backgroundColor: ['#6366f1', '#10b981'], borderWidth: 0, hoverOffset: 12 }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    cutout: '78%',
-                    animation: {
-                        animateRotate: true,
-                        duration: 1200,
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: isDarkMode() ? 'rgba(30,30,50,0.95)' : 'rgba(0,0,0,0.85)',
-                            padding: 12,
-                            cornerRadius: 8,
-                            bodyFont: { size: 13 },
-                            bodyColor: '#fff',
-                            callbacks: {
-                                label: ctx => ` ${ctx.label}: ${ctx.parsed}`
-                            }
-                        }
-                    }
+                    responsive: true, maintainAspectRatio: true, cutout: '75%',
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: isDarkMode() ? '#1e293b' : '#1e293b', padding: 12, cornerRadius: 8 } }
                 }
             });
 
             const legendEl = document.getElementById('legend-engagement');
+            const total = dash.total_quizzes_created + dash.total_quizzes_responded;
             legendEl.innerHTML = [
-                { label: 'Criados', value: dash.total_quizzes_created, pct: pctCriados, color: '#667eea' },
-                { label: 'Respondidos', value: dash.total_quizzes_responded, pct: pctRespondidos, color: '#f093fb' },
-            ].map(l => `
-                <div class="chart-legend-item">
-                    <span class="chart-legend-dot" style="background:${l.color}"></span>
-                    <span class="chart-legend-label">${l.label}</span>
-                    <span class="chart-legend-value">${l.value}</span>
-                    <span class="chart-legend-pct">${l.pct}%</span>
-                </div>
-            `).join('');
+                { label: 'Criados', value: dash.total_quizzes_created, color: '#6366f1' },
+                { label: 'Respondidos', value: dash.total_quizzes_responded, color: '#10b981' },
+            ].map(l => `<div class="chart-legend-item"><span class="chart-legend-dot" style="background:${l.color}"></span><span class="chart-legend-label">${l.label}</span><span class="chart-legend-value">${l.value}</span></div>`).join('');
 
             const barCtx = document.getElementById('chart-periods').getContext('2d');
-            const barGrad1 = buildGradient(barCtx, 'rgba(102,126,234,0.5)', 'rgba(102,126,234,0.9)');
-            const barGrad2 = buildGradient(barCtx, 'rgba(240,147,251,0.5)', 'rgba(240,147,251,0.9)');
-
-            Chart.register({
-                id: 'barLabels',
-                afterDatasetsDraw(chart) {
-                    const ctx = chart.ctx;
-                    const txtColor = chartTextColor();
-                    chart.data.datasets.forEach((ds, dsIdx) => {
-                        const meta = chart.getDatasetMeta(dsIdx);
-                        meta.data.forEach((bar, idx) => {
-                            const val = ds.data[idx];
-                            if (val === 0) return;
-                            ctx.save();
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'bottom';
-                            ctx.font = '700 14px "Segoe UI", sans-serif';
-                            ctx.fillStyle = txtColor;
-                            ctx.fillText(val, bar.x, bar.y - 10);
-                            ctx.restore();
-                        });
-                    });
-                }
-            });
-
             chartPeriods = new Chart(barCtx, {
                 type: 'bar',
                 data: {
                     labels: ['7 dias', '30 dias'],
                     datasets: [
-                        {
-                            label: 'Submissões',
-                            data: [stats.last_7_days.submissions, stats.last_30_days.submissions],
-                            backgroundColor: [barGrad1, barGrad1],
-                            borderRadius: 6,
-                            borderSkipped: false,
-                            barPercentage: 0.4,
-                            categoryPercentage: 0.7,
-                        },
-                        {
-                            label: 'Quizzes',
-                            data: [stats.last_7_days.quizzes_created, stats.last_30_days.quizzes_created],
-                            backgroundColor: [barGrad2, barGrad2],
-                            borderRadius: 6,
-                            borderSkipped: false,
-                            barPercentage: 0.4,
-                            categoryPercentage: 0.7,
-                        }
+                        { label: 'Submissões', data: [stats.last_7_days.submissions, stats.last_30_days.submissions], backgroundColor: '#6366f1', borderRadius: 6, borderSkipped: false, barPercentage: 0.4 },
+                        { label: 'Quizzes', data: [stats.last_7_days.quizzes_created, stats.last_30_days.quizzes_created], backgroundColor: '#10b981', borderRadius: 6, borderSkipped: false, barPercentage: 0.4 }
                     ]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    animation: {
-                        duration: 1000,
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 14,
-                                boxHeight: 14,
-                                borderRadius: 4,
-                                padding: 16,
-                                font: { size: 12, weight: '500' },
-                                color: chartTextColor(),
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: isDarkMode() ? 'rgba(30,30,50,0.95)' : 'rgba(0,0,0,0.85)',
-                            padding: 12,
-                            cornerRadius: 8,
-                            bodyFont: { size: 13 },
-                            bodyColor: '#fff',
-                            displayColors: true,
-                        }
-                    },
+                    responsive: true, maintainAspectRatio: true,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 14, boxHeight: 14, borderRadius: 4, padding: 16, font: { size: 12 }, color: chartTextColor() } }, tooltip: { backgroundColor: '#1e293b', padding: 12, cornerRadius: 8 } },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1,
-                                font: { size: 11 },
-                                color: chartTickColor(),
-                                padding: 8,
-                            },
-                            grid: {
-                                color: chartGridColor(),
-                                drawBorder: false,
-                            }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: {
-                                font: { size: 12, weight: '700' },
-                                color: chartTextColor(),
-                            }
-                        }
+                        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 }, color: chartTickColor() }, grid: { color: chartGridColor(), drawBorder: false } },
+                        x: { grid: { display: false }, ticks: { font: { size: 12, weight: '700' }, color: chartTextColor() } }
                     }
                 }
             });
+
+            document.getElementById('s7-s').textContent = stats.last_7_days.submissions;
+            document.getElementById('s7-q').textContent = stats.last_7_days.quizzes_created;
+            document.getElementById('s30-s').textContent = stats.last_30_days.submissions;
+            document.getElementById('s30-q').textContent = stats.last_30_days.quizzes_created;
         }
 
         function renderList(containerId, items, emptyText, titleField, dateField) {
             const el = document.getElementById(containerId);
-            if (!items || items.length === 0) {
-                el.className = '';
-                el.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><h3>${emptyText}</h3><a href="/static/index.html" class="dash-empty-cta">Explorar quizzes</a></div>`;
-                return;
-            }
+            if (!items || items.length === 0) { el.className = ''; el.innerHTML = `<div class="dash-empty">${emptyText}</div>`; return; }
             el.className = 'dash-recent-list';
-            el.innerHTML = items.map((item, i) => `
-                <div class="dash-recent-item" style="animation-delay: ${i * 0.05}s">
-                    <div class="dash-recent-dot"></div>
-                    <div class="dash-recent-body">
-                        <span class="dr-title" title="${escapeHtml(item[titleField])}">${escapeHtml(item[titleField])}</span>
-                        <span class="dr-date">${timeAgo(item[dateField])}</span>
-                    </div>
-                </div>
-            `).join('');
+            el.innerHTML = items.map((item, i) => `<div class="dash-recent-item" style="animation-delay:${i*0.05}s"><div class="dash-recent-dot"></div><div class="dash-recent-body"><span class="dr-title" title="${escapeHtml(item[titleField])}">${escapeHtml(item[titleField])}</span><span class="dr-date">${timeAgo(item[dateField])}</span></div></div>`).join('');
         }
 
         async function loadDashboard() {
             try {
-                const [dash, stats] = await Promise.all([
-                    apiGet('/me/dashboard'),
-                    apiGet('/me/stats'),
-                ]);
+                const [dash, stats] = await Promise.all([apiGet('/me/dashboard'), apiGet('/me/stats')]);
                 document.getElementById('dash-loading').classList.add('hidden');
                 document.getElementById('dash-content').classList.remove('hidden');
-
                 renderCards(dash);
-                renderInsight(dash);
                 setTimeout(() => renderCharts(dash, stats), 150);
                 renderList('recent-quizzes', dash.recent_quizzes, 'Nenhum quiz criado ainda', 'title', 'created_at');
                 renderList('recent-submissions', dash.recent_submissions, 'Nenhuma submissão ainda', 'quiz_title', 'created_at');
             } catch (err) {
                 document.getElementById('dash-loading').classList.add('hidden');
-                document.getElementById('dash-error').textContent = handleApiError(err);
                 document.getElementById('dash-error').classList.remove('hidden');
+                document.getElementById('dash-error').innerHTML = `<div class="alert alert-danger"><span class="alert-message">${handleApiError(err)}</span></div>`;
                 Toast.error(handleApiError(err));
             }
         }
 
-        async function loadUser() {
-            try {
-                const user = await fetchMe();
-                document.getElementById('user-name').textContent = user.name;
-                document.getElementById('user-area').classList.remove('hidden');
-                document.getElementById('dash-user-name').textContent = user.name;
-                document.getElementById('dash-avatar').textContent = getInitials(user.name);
-                document.getElementById('dash-welcome').classList.remove('hidden');
-                if (user.role === 'admin') {
-                    document.getElementById('admin-badge').classList.remove('hidden');
-                }
-            } catch (err) {
-                if (err.status === 401) { logout(); }
-                else { Toast.error(handleApiError(err)); logout(); }
-            }
-        }
-
         redirectIfNotAuth();
-        loadUser();
+        if (typeof initLayout === 'function') initLayout('Dashboard');
         loadDashboard();
     </script>
 </body>

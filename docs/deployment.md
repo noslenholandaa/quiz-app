@@ -47,12 +47,13 @@ ADMIN_EMAILS=admin@example.com
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=<senha-admin>
 
-# SMTP (obrigatório para recuperação de senha)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=seuemail@gmail.com
-SMTP_PASSWORD=<app-password>
-SMTP_FROM=seuemail@gmail.com
+# SMTP — LEGACY (não utilizado — modo demo)
+# O sistema opera em modo demonstração. Recuperação de senha via reset_url na API.
+# SMTP_HOST=
+# SMTP_PORT=587
+# SMTP_USERNAME=
+# SMTP_PASSWORD=
+# SMTP_FROM=noreply@quizapp.com
 ```
 
 ### 3. Iniciar serviços
@@ -191,14 +192,14 @@ curl -s https://quizapp.seudominio.com/health | python -m json.tool
 | Certificado expirado | Certbot parou | `docker compose restart certbot` |
 | 502 Bad Gateway | Backend fora do ar | `docker compose restart app` |
 | 504 Gateway Timeout | Query lenta | Aumentar `proxy_read_timeout` no nginx.conf |
-| SMTP não envia | Config incorreta | Verificar `.env.prod` — `docker compose logs app` |
+| Password reset não funciona | Token expirado | Gerar novo token via `POST /auth/forgot-password` |
 
 ## Checklist de Produção
 
 - [ ] Domínio configurado com registro A
 - [ ] HTTPS funcionando (Let's Encrypt)
 - [ ] Variáveis SECRET_KEY fortes (openssl rand -hex 32)
-- [ ] SMTP configurado e testado
+- [ ] Password reset testado (modo demo — POST /auth/forgot-password retorna reset_url)
 - [ ] Backup automático configurado (cron)
 - [ ] Healthcheck respondendo
 - [ ] CORS_ORIGINS restrito ao domínio

@@ -4,69 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Criar Conta — Quiz App</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20260619">
 </head>
-<body>
-    <div class="container">
-        <header>
-            <div class="header-top">
-                <div>
-                    <h1>Quiz App</h1>
-                    <p>Crie sua conta para começar</p>
-                </div>
-                <div class="user-area">
-                    <button id="theme-toggle" class="theme-btn" onclick="Theme.toggle()" aria-label="Alternar tema" title="Alternar tema"></button>
-                </div>
-            </div>
-        </header>
-        <main>
-
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-header">
+            <div class="auth-logo">QA</div>
+            <h1>Quiz App</h1>
+            <p>Crie sua conta para começar</p>
+        </div>
         <div class="auth-card">
             <h2>Cadastro</h2>
-
             <div id="register-error" class="auth-msg auth-error hidden" role="alert"></div>
             <div id="register-success" class="auth-msg auth-success hidden" role="alert"></div>
-
             <form id="register-form" onsubmit="handleRegister(event)">
-                <div class="auth-field">
-                    <label for="name">Nome <span class="required-star">*</span></label>
-                    <input type="text" id="name" class="auth-input" placeholder="Seu nome" required autofocus>
+                <div class="form-group">
+                    <label class="form-label" for="name">Nome</label>
+                    <input type="text" id="name" class="form-input" placeholder="Seu nome" required autofocus>
                 </div>
-
-                <div class="auth-field">
-                    <label for="email">E-mail <span class="required-star">*</span></label>
-                    <input type="email" id="email" class="auth-input" placeholder="seu@email.com" required>
+                <div class="form-group">
+                    <label class="form-label" for="email">E-mail</label>
+                    <input type="email" id="email" class="form-input" placeholder="seu@email.com" required>
                 </div>
-
-                <div class="auth-field">
-                    <label for="password">Senha <span class="required-star">*</span></label>
-                    <input type="password" id="password" class="auth-input" placeholder="Mínimo 6 caracteres" required minlength="6">
+                <div class="form-group">
+                    <label class="form-label" for="password">Senha</label>
+                    <input type="password" id="password" class="form-input" placeholder="Mínimo 6 caracteres" required minlength="6">
                 </div>
-
-                <div class="auth-field">
-                    <label for="confirm-password">Confirmar senha <span class="required-star">*</span></label>
-                    <input type="password" id="confirm-password" class="auth-input" placeholder="Repita a senha" required minlength="6">
+                <div class="form-group">
+                    <label class="form-label" for="confirm-password">Confirmar senha</label>
+                    <input type="password" id="confirm-password" class="form-input" placeholder="Repita a senha" required minlength="6">
                 </div>
-
-                <button type="submit" class="submit-btn" id="register-btn">Criar conta</button>
+                <button type="submit" class="btn btn-primary btn-full btn-lg" id="register-btn">Criar conta</button>
             </form>
-
-            <p class="auth-link">
+            <div class="auth-footer">
                 Já tem conta? <a href="/static/login.html">Fazer login</a>
-            </p>
+            </div>
         </div>
-    </main>
     </div>
-
-    <script src="theme.js"></script>
-    <script src="toast.js"></script>
-    <script src="auth.js"></script>
+    <div id="toast-container"></div>
+    <script src="theme.js?v=20260619"></script>
+    <script src="toast.js?v=20260619"></script>
+    <script src="auth.js?v=20260619"></script>
     <script>
         redirectIfAuth();
-
         async function handleRegister(event) {
             event.preventDefault();
-
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
@@ -74,25 +56,18 @@
             const errorEl = document.getElementById('register-error');
             const successEl = document.getElementById('register-success');
             const btn = document.getElementById('register-btn');
-
             errorEl.classList.add('hidden');
             successEl.classList.add('hidden');
-
             if (!name || !email || !password || !confirm) {
                 errorEl.textContent = 'Preencha todos os campos obrigatórios.';
-                errorEl.classList.remove('hidden');
-                return;
+                errorEl.classList.remove('hidden'); return;
             }
-
             if (password !== confirm) {
                 errorEl.textContent = 'As senhas não conferem.';
-                errorEl.classList.remove('hidden');
-                return;
+                errorEl.classList.remove('hidden'); return;
             }
-
             btn.disabled = true;
             btn.textContent = 'Criando...';
-
             try {
                 await registerUser(name, email, password);
                 successEl.textContent = 'Conta criada! Redirecionando...';

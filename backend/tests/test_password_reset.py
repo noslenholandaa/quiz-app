@@ -115,77 +115,50 @@ def test_reset_password_reused_token(client, db_session):
     assert resp.status_code == 400
 
 
-def test_forgot_password_production_attempts_email(monkeypatch, client, db_session):
-    monkeypatch.setattr("auth.ENVIRONMENT", "production")
-    import auth
-    assert auth.ENVIRONMENT == "production"
-    sent = {"called": False}
-
-    def fake_send(email, url):
-        sent["called"] = True
-        assert email == "fp-prod@test.com"
-        assert "/static/reset-password.html?token=" in url
-        return True
-
-    monkeypatch.setattr("auth.send_password_reset_email", fake_send)
+def test_forgot_password_production_returns_token_demo_mode(monkeypatch, client, db_session):
+    monkeypatch.setattr("app.services.auth_service.ENVIRONMENT", "production")
     client.post("/auth/register", json={
         "name": "Prod", "email": "fp-prod@test.com", "password": "password123",
     })
     resp = client.post("/auth/forgot-password", json={"email": "fp-prod@test.com"})
     assert resp.status_code == 200
-    assert sent["called"] is True
+    data = resp.json()
+    assert "message" in data
+    assert data["reset_url"] is not None
+    assert "/static/reset-password.html?token=" in data["reset_url"]
 
 
-def test_forgot_password_testing_skips_email(monkeypatch, client):
-    monkeypatch.setattr("auth.ENVIRONMENT", "testing")
-    called = False
-
-    def fake_send(email, url):
-        nonlocal called
-        called = True
-
-    monkeypatch.setattr("auth.send_password_reset_email", fake_send)
+def test_forgot_password_testing_returns_token(monkeypatch, client):
+    monkeypatch.setattr("app.services.auth_service.ENVIRONMENT", "testing")
     resp = client.post("/auth/forgot-password", json={"email": "test-skip@test.com"})
     assert resp.status_code == 200
-    assert called is False
+    data = resp.json()
+    assert data["reset_url"] is None
 
 
-def test_forgot_password_development_logs_url(monkeypatch, client, db_session):
+def test_forgot_password_logs_url(monkeypatch, client, db_session):
     logged = []
-    monkeypatch.setattr("auth.logger.info", lambda msg, *args: logged.append((msg, args)))
-    monkeypatch.setattr("auth.ENVIRONMENT", "development")
+    monkeypatch.setattr("app.services.auth_service.logger.info", lambda msg, *args: logged.append((msg, args)))
     client.post("/auth/register", json={
         "name": "Dev", "email": "fp-dev@test.com", "password": "password123",
     })
     resp = client.post("/auth/forgot-password", json={"email": "fp-dev@test.com"})
     assert resp.status_code == 200
-    dev_calls = [(msg, args) for msg, args in logged if "[DEV] Reset URL" in msg]
-    assert len(dev_calls) == 1
-    assert "fp-dev@test.com" in dev_calls[0][1][0]
+    data = resp.json()
+    assert data["reset_url"] is not None
+    assert "token=" in data["reset_url"]
+    reset_logs = [(msg, args) for msg, args in logged if "Password reset token generated" in msg]
+    assert len(reset_logs) == 1
 
 
-def test_forgot_password_nonexistent_no_email_sent(monkeypatch, client):
-    called = False
-
-    def fake_send(email, url):
-        nonlocal called
-        called = True
-
-    monkeypatch.setattr("auth.send_password_reset_email", fake_send)
+def test_forgot_password_nonexistent_no_token(monkeypatch, client):
     resp = client.post("/auth/forgot-password", json={"email": "ghost@nowhere.com"})
     assert resp.status_code == 200
-    assert called is False
+    data = resp.json()
+    assert data["reset_url"] is None
 
 
-def test_forgot_password_smtp_failure_no_leak(monkeypatch, client, db_session):
-    logged = []
-    monkeypatch.setattr("auth.logger.error", lambda msg, *args: logged.append((msg, args)))
-    monkeypatch.setattr("auth.ENVIRONMENT", "production")
-
-    def failing_send(email, url):
-        raise RuntimeError("SMTP interno explodiu")
-
-    monkeypatch.setattr("auth.send_password_reset_email", failing_send)
+def test_forgot_password_no_smtp_error(monkeypatch, client, db_session):
     client.post("/auth/register", json={
         "name": "Fail", "email": "fp-fail@test.com", "password": "password123",
     })
@@ -193,25 +166,8 @@ def test_forgot_password_smtp_failure_no_leak(monkeypatch, client, db_session):
     assert resp.status_code == 200
     data = resp.json()
     assert "instruções" in data["message"]
-    assert "token" not in data
+    assert data["reset_url"] is not None
     assert "SMTP" not in data["message"]
-    error_calls = [(msg, args) for msg, args in logged if "Failed to send password reset email" in msg]
-    assert len(error_calls) == 1
-
-
-def test_forgot_password_token_not_in_logs(monkeypatch, client, db_session, caplog):
-    import logging
-    caplog.set_level(logging.INFO)
-    monkeypatch.setattr("auth.ENVIRONMENT", "production")
-    monkeypatch.setattr("auth.send_password_reset_email", lambda e, u: True)
-    client.post("/auth/register", json={
-        "name": "NoLeak", "email": "fp-noleak@test.com", "password": "password123",
-    })
-    resp = client.post("/auth/forgot-password", json={"email": "fp-noleak@test.com"})
-    assert resp.status_code == 200
-    log_text = "\n".join(r.getMessage() for r in caplog.records)
-    assert "token=" not in log_text
-    assert "/reset-password.html?token=" not in log_text
 
 
 def test_reset_password_invalid_token(client):

@@ -4,153 +4,286 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin — Quiz App</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20260619">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="header-top">
-                <div>
-                    <h1>Painel Admin</h1>
-                    <p>Gerenciamento do sistema</p>
-                </div>
-                <div id="user-area" class="user-area hidden">
-                    <span id="user-name" class="user-name"></span>
-                    <button id="theme-toggle" class="theme-btn" onclick="Theme.toggle()" aria-label="Alternar tema" title="Alternar tema"></button>
-                    <span class="admin-badge-static">Admin</span>
-                    <button class="logout-btn" onclick="logout()">Sair</button>
-                </div>
-            </div>
-        </header>
-        <main>
+    <div class="app-layout">
+        <div class="main-area">
+            <div class="content">
 
-        <nav class="nav-bar" aria-label="Navegação">
-            <a href="/static/dashboard.html" class="nav-link">&larr; Dashboard</a>
-        </nav>
-
-        <div id="admin-loading" class="loading">
-            <div class="spinner"></div>Carregando painel...
-            <div style="margin-top:1rem;max-width:500px;margin-left:auto;margin-right:auto">
-                <div class="skeleton" style="height:60px;margin-bottom:8px;border-radius:10px"></div>
-                <div class="skeleton" style="height:60px;margin-bottom:8px;border-radius:10px"></div>
-                <div class="skeleton" style="height:60px;border-radius:10px"></div>
-            </div>
+        <div id="admin-loading" style="text-align:center;padding:48px">
+            <div class="skeleton" style="height:60px;margin-bottom:12px;border-radius:10px"></div>
+            <div class="skeleton" style="height:60px;margin-bottom:12px;border-radius:10px"></div>
+            <div class="skeleton" style="height:60px;border-radius:10px"></div>
         </div>
-        <div id="admin-error" class="error hidden" role="alert"></div>
+        <div id="admin-error" class="hidden" role="alert"></div>
 
         <div id="admin-content" class="hidden">
-            <div class="admin-stats-row">
-                <div class="admin-stat-card">
-                    <div class="admin-stat-value" id="stat-users">0</div>
-                    <div class="admin-stat-label">Usuários</div>
+            <!-- Stats -->
+            <div class="stats-grid" id="admin-stats">
+                <div class="stat-card">
+                    <div class="stat-icon stat-icon-users">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div class="stat-body">
+                        <span class="stat-value" id="admin-total-users">0</span>
+                        <span class="stat-label">Usuários</span>
+                    </div>
                 </div>
-                <div class="admin-stat-card">
-                    <div class="admin-stat-value" id="stat-quizzes">0</div>
-                    <div class="admin-stat-label">Quizzes</div>
+                <div class="stat-card">
+                    <div class="stat-icon stat-icon-quizzes">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div class="stat-body">
+                        <span class="stat-value" id="admin-total-quizzes">0</span>
+                        <span class="stat-label">Quizzes</span>
+                    </div>
                 </div>
-                <div class="admin-stat-card">
-                    <div class="admin-stat-value" id="stat-submissions">0</div>
-                    <div class="admin-stat-label">Submissões</div>
+                <div class="stat-card">
+                    <div class="stat-icon stat-icon-submissions">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <div class="stat-body">
+                        <span class="stat-value" id="admin-total-submissions">0</span>
+                        <span class="stat-label">Submissões</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="dash-section">
-                <div class="dash-section-header">
-                    <h3>Usuários cadastrados</h3>
-                </div>
-                <div id="admin-users-list"></div>
+            <!-- Tabs -->
+            <div class="tabs" role="tablist">
+                <button class="tab tab-active" data-tab="users" role="tab" aria-selected="true">Usuários</button>
+                <button class="tab" data-tab="quizzes" role="tab" aria-selected="false">Quizzes</button>
+                <button class="tab" data-tab="categories" role="tab" aria-selected="false">Categorias</button>
             </div>
-        </div>
-    </main>
-    </div>
 
-    <script src="theme.js"></script>
-    <script src="toast.js"></script>
-    <script src="auth.js"></script>
-    <script>
-        function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-
-        function renderUsers(users) {
-            const el = document.getElementById('admin-users-list');
-            if (!users || users.length === 0) {
-                el.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><h3>Nenhum usuário</h3><p>Nenhum usuário encontrado com esse filtro.</p></div>';
-                return;
-            }
-            el.innerHTML = `
-                <div class="admin-table-wrap">
-                    <table class="admin-table">
+            <!-- Tab: Users -->
+            <div id="tab-users" class="tab-panel active" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table">
                         <thead>
                             <tr>
-                                <th scope="col">ID</th>
-                                <th scope="col">Nome</th>
-                                <th scope="col">Email</th>
-                                <th scope="col">Role</th>
-                                <th scope="col">Quizzes</th>
-                                <th scope="col">Submissões</th>
-                                <th scope="col">Criado em</th>
+                                <th>Nome</th>
+                                <th class="hide-mobile">Email</th>
+                                <th class="hide-tablet">Função</th>
+                                <th class="hide-mobile">Data</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            ${users.map(u => {
-                                const date = new Date(u.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                                const isAdmin = u.role === 'admin';
-                                return `
-                                    <tr${isAdmin ? ' class="admin-row"' : ''}>
-                                        <td>${u.id}</td>
-                                        <td><strong>${escapeHtml(u.name)}</strong></td>
-                                        <td>${escapeHtml(u.email)}</td>
-                                        <td><span class="role-badge role-${u.role}">${isAdmin ? '🛡️ Admin' : 'Usuário'}</span></td>
-                                        <td>${u.quizzes_count}</td>
-                                        <td>${u.submissions_count}</td>
-                                        <td class="admin-date">${date}</td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
+                        <tbody id="admin-users-list"></tbody>
                     </table>
                 </div>
-            `;
+                <div id="admin-users-pagination" class="grid-pagination"></div>
+            </div>
+
+            <!-- Tab: Quizzes -->
+            <div id="tab-quizzes" class="tab-panel" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th class="hide-mobile">Autor</th>
+                                <th class="hide-tablet">Status</th>
+                                <th class="hide-mobile">Data</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-quizzes-list"></tbody>
+                    </table>
+                </div>
+                <div id="admin-quizzes-pagination" class="grid-pagination"></div>
+            </div>
+
+            <!-- Tab: Categories -->
+            <div id="tab-categories" class="tab-panel" role="tabpanel">
+                <div class="flex" style="gap:8px;margin-bottom:16px">
+                    <input type="text" id="new-category-input" class="input" placeholder="Nova categoria..." style="max-width:280px">
+                    <button class="btn btn-primary btn-sm" onclick="addCategory()">Adicionar</button>
+                </div>
+                <div id="admin-categories-list"></div>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+    <div id="toast-container"></div>
+    <div class="sidebar-overlay" onclick="toggleMobileMenu()"></div>
+    <script src="theme.js?v=20260619"></script>
+    <script src="toast.js?v=20260619"></script>
+    <script src="auth.js?v=20260619"></script>
+    <script>
+        let userPage = 1, quizPage = 1;
+        const PAGE_SIZE = 15;
+
+        function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        function formatDate(d) {
+            return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
         }
+
+        function getInitials(name) {
+            return name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+        }
+
+        /* Tabs */
+        document.addEventListener('click', e => {
+            const tab = e.target.closest('.tab');
+            if (!tab) return;
+            document.querySelectorAll('.tab').forEach(t => { t.classList.remove('tab-active'); t.setAttribute('aria-selected', 'false'); });
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('tab-active');
+            tab.setAttribute('aria-selected', 'true');
+            document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        });
+
+        /* Users */
+        async function loadUsers(page) {
+            userPage = page;
+            try {
+                const data = await apiGet(`/admin/users?page=${page}&limit=${PAGE_SIZE}`);
+                const el = document.getElementById('admin-users-list');
+                el.innerHTML = data.users.map(u => `<tr>
+                    <td>
+                        <div class="flex" style="gap:8px;align-items:center">
+                            <span class="lb-avatar" style="width:28px;height:28px;font-size:11px">${getInitials(u.name)}</span>
+                            <a href="/static/profile.html?user_id=${u.id}" class="table-link">${escapeHtml(u.name)}</a>
+                        </div>
+                    </td>
+                    <td class="hide-mobile">${escapeHtml(u.email)}</td>
+                    <td class="hide-tablet">${u.role === 'admin' ? '<span class="badge badge-warning">Admin</span>' : '<span class="badge badge-secondary">User</span>'}</td>
+                    <td class="hide-mobile">${formatDate(u.created_at)}</td>
+                    <td>
+                        <button class="btn btn-${u.role === 'admin' ? 'secondary' : 'warning'} btn-xs" onclick="toggleRole(${u.id}, '${u.role}')">
+                            ${u.role === 'admin' ? 'Remover admin' : 'Tornar admin'}
+                        </button>
+                        <button class="btn btn-danger btn-xs" onclick="deleteUser(${u.id})">Excluir</button>
+                    </td>
+                </tr>`).join('');
+                const pages = document.getElementById('admin-users-pagination');
+                if (data.total_pages <= 1) { pages.innerHTML = ''; return; }
+                pages.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="loadUsers(${page - 1})" ${page <= 1 ? 'disabled' : ''}>Anterior</button>
+                    <span class="page-info">${page} / ${data.total_pages}</span>
+                    <button class="btn btn-secondary btn-sm" onclick="loadUsers(${page + 1})" ${page >= data.total_pages ? 'disabled' : ''}>Próxima</button>`;
+            } catch (err) { Toast.error(handleApiError(err)); }
+        }
+
+        async function loadQuizzes(page) {
+            quizPage = page;
+            try {
+                const data = await apiGet(`/admin/quizzes?page=${page}&limit=${PAGE_SIZE}`);
+                const el = document.getElementById('admin-quizzes-list');
+                el.innerHTML = data.quizzes.map(q => `<tr>
+                    <td><a href="/quiz/${q.id}" class="table-link">${escapeHtml(q.title)}</a></td>
+                    <td class="hide-mobile">${escapeHtml(q.author_name)}</td>
+                    <td class="hide-tablet">${q.is_active ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-secondary">Inativo</span>'}</td>
+                    <td class="hide-mobile">${formatDate(q.created_at)}</td>
+                    <td>
+                        <button class="btn btn-${q.is_active ? 'secondary' : 'success'} btn-xs" onclick="toggleQuizStatus(${q.id}, ${q.is_active})">${q.is_active ? 'Desativar' : 'Ativar'}</button>
+                        <button class="btn btn-danger btn-xs" onclick="deleteQuiz(${q.id})">Excluir</button>
+                    </td>
+                </tr>`).join('');
+                const pages = document.getElementById('admin-quizzes-pagination');
+                if (data.total_pages <= 1) { pages.innerHTML = ''; return; }
+                pages.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="loadQuizzes(${page - 1})" ${page <= 1 ? 'disabled' : ''}>Anterior</button>
+                    <span class="page-info">${page} / ${data.total_pages}</span>
+                    <button class="btn btn-secondary btn-sm" onclick="loadQuizzes(${page + 1})" ${page >= data.total_pages ? 'disabled' : ''}>Próxima</button>`;
+            } catch (err) { Toast.error(handleApiError(err)); }
+        }
+
+        /* Categories */
+        async function loadCategories() {
+            try {
+                const data = await apiGet('/categories');
+                const el = document.getElementById('admin-categories-list');
+                if (!data || data.length === 0) {
+                    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏷️</div><p>Nenhuma categoria cadastrada.</p></div>';
+                    return;
+                }
+                el.innerHTML = '<div class="category-grid">' + data.map(c => `
+                    <div class="category-chip">
+                        <span>${escapeHtml(c.name)}</span>
+                        <button class="btn btn-xs btn-ghost" onclick="deleteCategory('${escapeHtml(c.name)}')" style="color:var(--color-danger)">&times;</button>
+                    </div>
+                `).join('') + '</div>';
+            } catch (err) { Toast.error(handleApiError(err)); }
+        }
+
+        async function addCategory() {
+            const input = document.getElementById('new-category-input');
+            const name = input.value.trim();
+            if (!name) return;
+            try {
+                await apiPost('/categories', { name });
+                input.value = '';
+                Toast.success('Categoria adicionada!');
+                loadCategories();
+            } catch (err) { Toast.error(handleApiError(err)); }
+        }
+
+        window.deleteCategory = async function(name) {
+            if (!confirm(`Excluir categoria "${name}"?`)) return;
+            try {
+                await apiDelete(`/categories/${encodeURIComponent(name)}`);
+                Toast.success('Categoria excluída!');
+                loadCategories();
+            } catch (err) { Toast.error(handleApiError(err)); }
+        };
+
+        window.toggleRole = async function(id, role) {
+            try {
+                await apiPut(`/admin/users/${id}/role`, { role: role === 'admin' ? 'user' : 'admin' });
+                Toast.success('Função atualizada!');
+                loadUsers(userPage);
+            } catch (err) { Toast.error(handleApiError(err)); }
+        };
+
+        window.deleteUser = async function(id) {
+            if (!confirm('Excluir este usuário permanentemente?')) return;
+            try {
+                await apiDelete(`/admin/users/${id}`);
+                Toast.success('Usuário excluído!');
+                loadUsers(userPage);
+            } catch (err) { Toast.error(handleApiError(err)); }
+        };
+
+        window.toggleQuizStatus = async function(id, active) {
+            try {
+                await apiPut(`/admin/quizzes/${id}/status`, { is_active: !active });
+                Toast.success('Status atualizado!');
+                loadQuizzes(quizPage);
+            } catch (err) { Toast.error(handleApiError(err)); }
+        };
+
+        window.deleteQuiz = async function(id) {
+            if (!confirm('Excluir este quiz permanentemente?')) return;
+            try {
+                await apiDelete(`/admin/quizzes/${id}`);
+                Toast.success('Quiz excluído!');
+                loadQuizzes(quizPage);
+            } catch (err) { Toast.error(handleApiError(err)); }
+        };
 
         async function loadAdmin() {
             try {
-                const data = await apiGet('/admin/dashboard');
+                const data = await apiGet('/admin/stats');
+                document.getElementById('admin-total-users').textContent = data.total_users;
+                document.getElementById('admin-total-quizzes').textContent = data.total_quizzes;
+                document.getElementById('admin-total-submissions').textContent = data.total_submissions;
                 document.getElementById('admin-loading').classList.add('hidden');
                 document.getElementById('admin-content').classList.remove('hidden');
-
-                document.getElementById('stat-users').textContent = data.total_users;
-                document.getElementById('stat-quizzes').textContent = data.total_quizzes;
-                document.getElementById('stat-submissions').textContent = data.total_submissions;
-
-                renderUsers(data.users);
+                loadUsers(1);
+                loadQuizzes(1);
+                loadCategories();
             } catch (err) {
                 document.getElementById('admin-loading').classList.add('hidden');
-                document.getElementById('admin-error').textContent = handleApiError(err);
-                document.getElementById('admin-error').classList.remove('hidden');
-                Toast.error(handleApiError(err));
-            }
-        }
-
-        async function loadUser() {
-            try {
-                const user = await fetchMe();
-                document.getElementById('user-name').textContent = user.name;
-                document.getElementById('user-area').classList.remove('hidden');
-                if (user.role !== 'admin') {
-                    document.getElementById('admin-loading').classList.add('hidden');
-                    document.getElementById('admin-error').textContent = 'Acesso restrito a administradores.';
-                    document.getElementById('admin-error').classList.remove('hidden');
-                    return;
-                }
-                loadAdmin();
-            } catch (err) {
-                if (err.status === 401) { logout(); }
-                else { Toast.error(handleApiError(err)); logout(); }
+                document.getElementById('admin-error').innerHTML = `<div class="alert alert-danger"><span class="alert-message">${handleApiError(err)}</span></div>`;
             }
         }
 
         redirectIfNotAuth();
-        loadUser();
+        if (typeof initLayout === 'function') initLayout('Admin');
+        loadAdmin();
     </script>
 </body>
 </html>
